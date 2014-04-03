@@ -1,0 +1,1270 @@
+\documentclass{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% \mode<presentation>{%
+%   \usetheme{uvsq}
+% }
+\renewcommand{\emph}[1]{{\usebeamercolor[fg]{structure}#1}}
+
+\input{preamble}
+\usetikzlibrary{matrix,decorations,decorations.text}
+
+\pgfkeys{/triangle/.code=\tikzset{x={(-0.5cm,-0.866cm)},y={(1cm,0cm)}}}
+
+\newcommand{\bl}[1]{\textcolor{blue}{#1}}
+\newcommand{\rd}[1]{\textcolor{red}{#1}}
+
+% This command defines a triangle of dots of given height
+\newcommand{\dottriangle}[2][\i-\j]{%
+  \foreach \i in {0,...,#2} {%
+    \foreach \j in {0,...,\i} {%
+      \draw(\i,\j) node{#1};%
+    }%
+  }}
+
+
+\title{Fun with isogenies\newline and trees}
+\author[Luca De Feo and Jérôme Plût]{Luca De Feo\footnotemark[1] and Jérôme Plût\footnotemark[1]\\
+  joint work with David Jao\footnotemark[2] }
+\date[Versailles, June 20, 2012]{June 20, 2012, Séminaire Crypto,\\
+  PRiSM, Université de Versailles -- Saint-Quentin-en-Yvelines}
+\institute[UVSQ]{\footnotemark[1]Université de Versailles -- Saint-Quentin-en-Yvelines,\\
+  \footnotemark[2]University of Waterloo}
+
+\begin{document}
+
+\frame{\titlepage}
+
+%%
+
+\begin{frame}
+  \frametitle{Elliptic curves}
+
+  As long as we are concerned in this talk, \emph{elliptic curves} are
+
+  \begin{itemize}
+  \item Algebraic \alert{groups} defined over a (finite) field.
+  \item Their group law is easy to compute (say, in constant time).
+  \item Any curve $E$ is (almost) uniquely determined by its
+    \alert{$j$-invariant} $j(E)$ up to isomorphism (i.e. a change of
+    coordinates).
+  \end{itemize}
+  
+  \[E \;:\; y^2 = x^3 + ax + b \qquad a,b\in k\]
+
+  \alert{\[j(E) = 1728\frac{4a^3}{4a^3+27b^2}\]}
+  
+\end{frame}
+
+%%
+
+%%
+
+\begin{frame}
+  \frametitle{Isogenies}
+
+  Isogenies are just \alert{the right notion of morphism} for elliptic
+  curves
+
+  \begin{itemize}
+  \item Surjective group morphism.
+  \item Algebraic map (i.e., defined by polynomials).
+  \item Rational (coefficients in the base field $k$).
+  \end{itemize}
+
+  \alert{\[0 \to H \to E \overset{\phi}{\to} E' \to 0\]}
+
+  The kernel \emph{$H$} determines the image curve \emph{$E'$} up to
+  isomorphism \[\emph{E/H\overset{\text{\tiny def}}{=}E'}.\]
+
+  \begin{block}{Isogeny degree}
+    Neither of these definitions is quite correct, but they
+    \textit{nearly} are:
+    \begin{itemize}
+    \item The degree of \emph{$\phi$} is the cardinality of \emph{$\ker\phi$}.
+    \item (\emph{Bisson}) the degree of \emph{$\phi$} is the time
+      needed to compute it.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Isogenies: an example}
+  
+  Define the \emph{multiplication-by-$m$} map \emph{$[m]:E\to E$}
+  \[[m]P = \underbrace{P + \cdots + P}_{m\text{ times}}\]
+  
+  $[m]$ is an isogeny:
+  \begin{itemize}
+  \item \emph{$\deg [m] = m^2$};
+  \item In general \emph{$\ker[m] = E[m] \simeq (\Z/m\Z)^2 $}.
+  \end{itemize}
+
+  \emph{Remark:} This is, indeed, an \emph{endomorphism}.
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Computational isogenies}
+  
+  \emph{In practice:} an isogeny $\phi$ is just a rational fraction (or maybe two)
+  
+  \alert{\[\frac{N(x)}{D(x)} = \frac{x^n + \cdots + n_1x +
+      n_0}{x^{n-1} + \cdots + d_1x + d_0} \in k(x),\qquad\text{with }
+    n=\deg\phi,\]}
+  
+  and $D(x)$ vanishes on $\ker\phi$.
+
+  \begin{block}{The explicit isogeny problem}
+    \begin{description}
+    \item[Input:] A \textit{description} of the isogeny (e.g, its kernel).
+    \item[Output:] The curve \emph{$E/H$} and the rational fraction \emph{$N/D$}.
+    \item[Lower bound:] $\Omega(n)$.
+    \end{description}
+  \end{block}
+
+  \begin{block}{The isogeny evaluation problem}
+    \begin{description}
+    \item[Input:] A \textit{description} of the isogeny \emph{$\phi$},
+      a point \emph{$P\in E(k)$}.
+    \item[Output:] The curve \emph{$E/H$} and \emph{$\phi(P)$}.
+    \end{description}
+  \end{block}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Isogeny graphs}
+  
+  \vspace{-2mm}
+
+  \begin{columns}
+    \begin{column}{0.65\textwidth}
+      We want to study the graph of elliptic curves with isogenies
+      \emph{up to isomorphism}.  We say two \alert{isogenies}
+      $\phi,\phi'$ are \alert{isomorphic} if:
+    \end{column}
+    \begin{column}{0.3\textwidth}
+      \begin{center}
+        \begin{tikzpicture}[node distance=4em]
+          \node(E){$E$}; 
+          \node(E1)[right of=E]{$E'$};
+          \node(E2)[below of=E1]{$E'$};
+          \scriptsize
+          \path[->] (E) edge node[auto]{$\phi$} (E1);
+          \path[->] (E) edge node[auto,swap]{$\phi'$} (E2);
+          \path[<->] (E1) edge node[rotate=270] {\large$\widetilde{}$} (E2);
+        \end{tikzpicture}
+      \end{center}
+    \end{column}
+  \end{columns}
+
+  \emph{Example:} Finite field, ordinary case, graph of isogenies of degree $3$.
+
+  \begin{center}
+    \begin{tikzpicture}[]
+      \begin{scope}
+        \def\crater{7}
+        \foreach \i in {1,...,\crater} {
+          \draw[fill] (360/\crater*\i:1cm) circle (5pt);
+          \draw (360/\crater*\i : 1cm) -- (360/\crater*\i+360/\crater : 1cm);
+          \foreach \j in {-1,1} {
+            \draw[fill] (360/\crater*\i : 1cm) -- (360/\crater*\i + \j*360/\crater/4 : 2cm) circle (3pt);
+            \foreach \k in {-1,0,1} {
+              \draw[fill] (360/\crater*\i + \j*360/\crater/4 : 2cm) --
+              (360/\crater*\i + + \j*360/\crater/4 + \k*360/\crater/6 : 2.5cm) circle (1pt);
+            }
+          }
+        }
+      \end{scope}
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Structure of the graph}
+
+  \begin{theorem}[Serre-Tate]
+    Two curves are isogenous over a finite field $k$ if and only if
+    they have the \alert{same number of points} on $k$.
+  \end{theorem}
+
+  \begin{block}{The graph of isogenies of \alert{prime} degree \alert{$\ell\ne p$}}
+    \emph{Ordinary case}
+    \begin{itemize}
+    \item Nodes can have degree \emph{$0,1,2$} or \emph{$\ell+1$}.
+    \item Connected components form so called \emph{volcanoes}.
+    \end{itemize}
+    
+    \emph{Supersingular case}
+    \begin{itemize}
+    \item The graph is \emph{$\ell+1$-regular}.
+    \item There is an \alert{unique connected component} made of all
+      supersingular curves with the same number of points.
+    \item The graph has the \emph{Ramanujan} property (for
+      cryptographers like me: sufficiently long random walks land
+      anywhere with probability distribution close to uniform).
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Isogenies up to endomorphism}
+
+  \begin{columns}
+    \begin{column}{0.2\textwidth}
+      \begin{center}
+        \begin{tikzpicture}[node distance=4em]
+          \node(E){$E$}; 
+          \node(E')[right of=E]{$E'$};
+          \scriptsize
+          \path[->] (E) edge[bend right] node[auto,swap]{$\phi$} (E');
+          \path[->] (E) edge[bend left] node[auto]{$\phi'$} (E');
+        \end{tikzpicture}
+      \end{center}
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      In some cases we want to identify edges between the same
+      vertices. We say two \alert{isogenies} $\phi,\phi'$ are
+      \alert{in the same class} if there exist endomorphisms $a$ and
+      $b$ of $E$ and $E'$ such that:
+    \end{column}
+    \begin{column}{0.2\textwidth}
+      \begin{center}
+        \begin{tikzpicture}[node distance=4em]
+          \node(E){$E$}; 
+          \node(E')[right of=E]{$E'$};
+          \node(F)[below of=E]{$E$};
+          \node(F')[below of=E']{$E'$};
+          \scriptsize
+          \path[->] (E) edge node[auto]{$\phi$} (E');
+          \path[->] (F) edge node[auto,swap]{$\phi'$} (F');
+          \path[->] (E) edge node[auto,swap] {$a$} (F);
+          \path[->] (E') edge node[auto] {$b$} (F');
+        \end{tikzpicture}
+      \end{center}
+    \end{column}
+  \end{columns}
+
+  \begin{block}{Facts}
+    \begin{itemize}
+    \item This is an equivalence relation.
+    \item Two isogenies are in the same class \alert{if and only if}
+      they have the \emph{same domain and codomain}.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{The dual isogeny theorem}
+
+  \textbf{Theorem:} for any isogeny \emph{$\phi:E \to E'$} there exists
+  \emph{$\hat\phi$}
+  
+  \begin{center}
+    \begin{tikzpicture}[node distance=4em]
+      \node(E1){$E$}; 
+      \node(E2)[below of=E1]{$E$};
+      \node(E')[right of=E1]{$E'$};
+      \scriptsize
+      \path[->] (E1) edge node[auto]{$\phi$} (E');
+      \path[->] (E1) edge node[auto,swap]{$[m]$} (E2);
+      \path[->] (E') edge node[auto]{$\hat{\phi}$} (E2);
+    \end{tikzpicture}
+  \end{center}
+
+  \begin{itemize}
+  \item \emph{$\hat\phi$} is called the \alert{dual isogeny},
+    \emph{$\deg \phi = \deg \hat{\phi} = m$}.
+  \item \emph{$\hat{\hat{\phi}} = \phi$}.
+  \end{itemize}
+  
+  \begin{block}{Obvious corollaries:}
+    \begin{itemize}
+    \item \emph{$\phi(E[m]) = \ker\hat\phi$} (dual isogenies are ``easy'' to compute).
+    \item Graphs of isogenies are \alert{undirected}.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{The endomorphism ring}
+  
+  \begin{itemize}
+  \item An \emph{endomorphism} is an isogeny \emph{$\phi:E\to E$}.
+  \item The endomorphisms form a ring denoted \emph{$\End_k(E)$}.
+  \end{itemize}
+
+  \begin{theorem}
+    \alert{$\Q\otimes\End_{\bar{k}}(E)$} is isomorphic to one of the
+    following
+    \begin{description}
+    \item[ordinary case:] \alert{$\Q$} (only possible if $\chr k=0$),
+    \item[ordinary case (complex multiplication):] an \alert{imaginary quadratic field},
+    \item[supersingular case:] a \alert{quaternion algebra} (only possible if $\chr k\ne0$).
+    \end{description}
+  \end{theorem}
+
+  \begin{corollary}
+    \alert{$\End(E)$} is isomorphic to an \textit{order} 
+    $\alert{\O}\subset\Q\otimes\End(E)$.
+  \end{corollary}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Isogenies and endomorphisms}
+
+  \begin{theorem}[Serre-Tate]
+    Two elliptic curves $E,E'$ are isogenous if and only if
+    \[\emph{\Q\otimes\End(E) \simeq \Q\otimes\End(E')}.\]
+  \end{theorem}
+
+  \emph{Example:} Finite field, ordinary case, $3$-isogeny graph.
+
+  \begin{center}
+    \begin{tikzpicture}[]
+      \begin{scope}
+        \node at (0,2) {$\End(E)$};
+        \draw[fill] (0,1) circle(5pt) -- 
+        (0,0) circle(3pt) --
+        (0,-1) circle(1pt);
+        \node at (0,-2) {bigger node = bigger $\End(E)$};
+      \end{scope}
+      \begin{scope}[xshift=6cm]
+        \def\crater{7}
+        \foreach \i in {1,...,\crater} {
+          \draw[fill] (360/\crater*\i:1cm) circle (5pt);
+          \draw (360/\crater*\i : 1cm) -- (360/\crater*\i+360/\crater : 1cm);
+          \foreach \j in {-1,1} {
+            \draw[fill] (360/\crater*\i : 1cm) -- (360/\crater*\i + \j*360/\crater/4 : 2cm) circle (3pt);
+            \foreach \k in {-1,0,1} {
+              \draw[fill] (360/\crater*\i + \j*360/\crater/4 : 2cm) --
+              (360/\crater*\i + + \j*360/\crater/4 + \k*360/\crater/6 : 2.5cm) circle (1pt);
+            }
+          }
+        }
+      \end{scope}
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{The ordinary case}
+  
+  Let \emph{$\End(E) = \O \subset \Q(\sqrt{d})$} be the endomorphism
+  ring of $E$. Define
+
+  \begin{itemize}
+  \item $\mathcal{I}(\O)$, the group of \emph{invertible fractional ideals},
+  \item $\mathcal{P}(\O)$, the group of \emph{principal ideals},
+  \end{itemize}
+  
+  \begin{definition}[The class group]
+    The \alert{class group} of $\O$ is \[\alert{\Cl(\O) =
+      \mathcal{I}(\O)/\mathcal{P}(O)}.\]
+  \end{definition}
+
+  \begin{itemize}
+  \item It is a \alert{finite abelian} group.
+  \item It arises as the Galois group of an abelian extension of
+    $\Q(\sqrt{d})$.
+  \end{itemize}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Isogeny (classes) = ideal (classes)}
+  
+  \begin{definition}
+    Let
+    \begin{itemize}
+    \item \emph{$\a$} be a fractional ideal of $\O$;
+    \item \emph{$E[\a]$} be the the subgroup of $E(\bar{k})$
+      annihilated by $\a$;
+    \item \emph{$\phi:E\to E/E[\a]$}.
+    \end{itemize}
+    Then \emph{$\deg\phi = \mathcal{N}(\a)$}. We denote by \alert{$\ast$} the
+    action on the set of elliptic curves.
+    \[\alert{\a\ast j(E) = j(E/E[\a])}.\]
+  \end{definition}
+
+  \begin{theorem}
+    The action $\ast$ \emph{factors through $\Cl(\O)$}. It is faithful
+    and transitive.
+  \end{theorem}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Example: principal ideals}
+
+  Let \emph{$\a = m\O$}, the ideal corresponding to multiplication by
+  $m$. Then
+  \begin{itemize}
+  \item $\deg\phi = \mathcal{N}(m\O) = m^2$,
+  \item $E[\a] = E[m]$,
+  \item $m\O \in \mathcal{P}(\O)$,
+  \item $m\O \equiv 1 \in \Cl(\O)$.
+  \item $\a\ast j(E) = j(E)$.
+  \end{itemize}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Example: the dual isogeny}
+
+  Let \emph{$\phi$} be an isogeny and \emph{$\hat{\phi}$} its
+  dual. Let \emph{$\a$} and \emph{$\hat{\a}$} their associated
+  ideals. Then
+  \begin{itemize}
+  \item $\hat{\a}\a = \a\hat{\a} = m\O \in \mathcal{P}(\O)$,
+  \item $\deg\phi = \mathcal{N}(\a) = \mathcal{N}(\hat{\a}) = \deg\hat{\phi}$,
+  \item $\hat{\a} \equiv \a^{-1} \in \Cl(\O)$.
+  \end{itemize}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Diffie-Hellman key exchange}
+  
+  Let \emph{$G=\cyc{g}$} be a cyclic group of prime order $p$.
+
+  \begin{center}
+    \begin{tikzpicture}
+      \Large
+      \node[matrix of math nodes, ampersand replacement=\&, column sep=1cm, row sep=1cm] (diagram) {
+        \& |(1)| g \\
+        |(a)| g^a \& \& |(b)| g^b\\
+        \& |(ab)| g^{ab}\\
+      };
+      \small
+      \path[->] (1) edge node[auto,swap]{$a$} (a);
+      \path[->] (1) edge node[auto]{$b$} (b);
+      \path[->] (a) edge node[auto,swap]{$b$} (ab);
+      \path[->] (b) edge node[auto]{$a$} (ab);
+    \end{tikzpicture}
+  \end{center}
+
+  \emph{Group action:} \alert{$\Z/p\Z$}  over \alert{$G$}.
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{DH-like key exchange based on (semi)-group actions}
+  
+  Let \emph{$G$} be an abelian group acting (faithfully and
+  transitively) on a set $\emph{X}$.
+
+  \begin{center}
+    \begin{tikzpicture}
+      \Large
+      \node[matrix of math nodes, ampersand replacement=\&, column sep=0cm, row sep=1cm] (diagram) {
+        \& |(1)| x_0 \\
+        |(a)| g\cdot x_0 \& \& |(b)| h\cdot x_0\\
+        \& |(ab)| gh\cdot x_0 = hg\cdot x_0\\
+      };
+      \small
+      \path[->] (1) edge node[auto,swap]{$g$} (a);
+      \path[->] (1) edge node[auto]{$h$} (b);
+      \path[->] (a) edge node[auto,swap]{$h$} (ab);
+      \path[->] (b) edge node[auto]{$g$} (ab);
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Hidden Subgroup Problem}
+  
+  Let \emph{$G$} be a group, \emph{$X$} a set and \emph{$f:G\to X$}.
+  We say that $f$ \emph{hides} a subgroup \emph{$H\subset G$} if
+  \[\alert{f(g_1) = f(g_2) \Leftrightarrow g_1H = g_2H}.\]
+
+  \begin{definition}[Hidden Subgroup Problem (HSP)]
+    \begin{description}
+    \item[Input:] $G,X$ as above,  an oracle computing $f$.
+    \item[Output:] generators of $H$.
+    \end{description}
+  \end{definition}
+
+  \begin{theorem}[Schorr, Josza]
+    If $G$ is abelian, then
+    \begin{itemize}
+    \item \alert{$\text{HSP}\in\text{poly}_\text{BQP}(\log|G|)$},
+    \item using \alert{$\text{poly}(\log|G|)$} queries to the oracle.
+    \end{itemize}
+  \end{theorem}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Discrete logarithm $\to$ HSP}
+
+  Let \emph{$G=\cyc{g}$} of order \emph{$p$}, and let
+  \emph{$h=g^s$}. Define
+
+  \begin{equation*}
+    \begin{aligned}
+      f : (\Z/p\Z)^2 &\to G\\
+      (a,b) &\mapsto g^ah^b = g^{a+sb}
+    \end{aligned}
+  \end{equation*}
+
+  \emph{Remark:} A collision in $f$ uncovers the secret $s$, like in
+  Pollard's Rho.
+
+  \begin{block}{The reduction}
+    \begin{itemize}
+    \item $f$ is a group morphism;
+    \item $\alert{\ker f = \cyc{(s,-1)}} \simeq \Z/p\Z$.
+    \end{itemize}
+    Hence $f$ \emph{hides} the secret $\cyc{(s,-1)}$.
+  \end{block}
+
+  \emph{Consequence:} Diffie-Hellman is broken by quantum computers
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{The Hidden Shift Problem}
+  
+  The security of DH-like schemes based on group actions depends on
+
+  \begin{definition}[(Semi)group Action Problem (SAP)]
+    \begin{description}
+    \item[Input:] A (semi)group \emph{$G$}, a set \emph{$X$}, elements
+      \emph{$x,y\in X$}.
+    \item[Output:] Find \emph{$s\in G$} such that \emph{$y=s\cdot x$}.
+    \end{description}
+  \end{definition}
+
+  \begin{definition}[Hidden Shift Problem (HShP)]
+    \begin{description}
+    \item[Input:] \alert{$f_0,f_1:G\to X$} two oracles such that
+      \alert{$f_1(g) = f_0(gs)$}.
+    \item[Outpu:] The secret \alert{$s\in G$}.
+    \end{description}
+  \end{definition}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{The Hidden Shift Problem}
+  
+  \begin{block}{Reductions}
+    \begin{itemize}
+    \item \emph{SAP $\to$ HShP} (evident).
+    \item \emph{HShP $\to$ non-abelian HSP} for the dihedral group
+      $G\ltimes\Z/2\Z$.
+    \end{itemize}
+  \end{block}
+
+  \begin{block}{Quantum algorithms:}
+    \begin{description}
+    \item[Kuperberg:] \alert{$2^{O(\sqrt{\log|G|})}$} quantum time and space
+      and query complexity.
+    \item[Regev:] \alert{$L_{|G|}(\frac{1}{2},\sqrt{2})$} quantum
+      time and query complexity, \alert{$\text{poly}(\log(|G|)$} quantum
+      space.
+    \end{description}
+  \end{block}
+
+  \emph{Remark (Regev):} certain lattice-based cryptosystems are also
+  vulnerable to the HSP for dihedral groups.
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Rostovstev and Stolbunov's key exchange}
+  
+  \emph{Public data:}
+  \begin{itemize}
+  \item \alert{$E/\F_p$ ordinary elliptic curve} with complex multiplication
+    field $\mathbb{K}$,
+  \item primes \bl{$\ell_1$},\rd{$\ell_2$}
+    not dividing $\mathrm{Disc}(E)$ and
+    s.t. $\left(\frac{D_\mathbb{K}}{\ell_i}\right)=1$.
+  \item A \textit{direction} on the isogeny graph (a Frobenius eigenvalue).
+  \end{itemize}
+
+  \emph{Secret data:}  \alert{Random walks $\a,\b$} in the
+  $\ell_i$-isogeny graphs.
+  
+  \begin{center}
+    \begin{tikzpicture}
+      \Large
+      \node[matrix of math nodes, ampersand replacement=\&, column sep=0cm, row sep=1cm] (diagram) {
+        \& |(1)| E \\
+        |(a)| \a\ast E \& \& |(b)| \b\ast E\\
+        \& |(ab)| \a\b\ast E = \b\a\ast E\\
+      };
+      \small
+      \path[->] (1) edge node[auto,swap]{$\bl{\ell_1^{a_1}}\rd{\ell_2^{a_2}}=\mathcal{N}(\a)$} (a);
+      \path[->] (1) edge node[auto]{$\mathcal{N}(\b)=\bl{\ell_1^{b_1}}\rd{\ell_2^{b_2}}$} (b);
+      \path[->] (a) edge (ab);
+      \path[->] (b) edge (ab);
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{R\&S key exchange}
+
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{scope}
+        \def\crater{11}
+        \def\jump{5}
+        \def\diam{3.8cm}
+
+        \foreach \i in {1,...,\crater} {
+          \draw[blue] (360/\crater*\i : \diam) to[bend right] (360/\crater*\i+360/\crater : \diam);
+          \draw[red] (360/\crater*\i : \diam) to[bend left] (360/\crater*\i+\jump*360/\crater : \diam);
+        }
+        \foreach \i in {1,...,\crater}
+          \draw[fill] (360/\crater*\i: \diam) circle (2pt);
+      \end{scope}
+      \begin{scope}[xshift=4.2cm, yshift=2cm]
+        \draw[blue] (0,0) -- (0.5,0) (0.5,0) node[anchor=west] {\bl{$\ell_1$}-isogenies};
+        \draw[red] (0,-1) -- (0.5,-1) (0.5,-1) node[anchor=west] {\rd{$\ell_2$}-isogenies};
+      \end{scope}
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{R\&S key exchange}
+
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{scope}
+        \def\crater{11}
+        \def\jump{5}
+        \def\diam{2cm}
+
+        \foreach \i in {1,...,\crater} {
+          \draw[blue] (360/\crater*\i : \diam) to[bend left] (360/\crater*\i+360/\crater : \diam);
+          \draw[red] (360/\crater*\i : \diam) to[bend right] (360/\crater*\i+\jump*360/\crater : \diam);
+        }
+        \foreach \i in {1,...,\crater}
+          \draw[fill] (360/\crater*\i: \diam) circle (2pt);
+      \end{scope}
+    \end{tikzpicture}
+  \end{center}
+
+  \begin{description}
+  \item[Key generation:] compose small degree
+    isogenies\\\alert{polynomial in the lenght of the random walk}.
+  \item[Attack:] find an isogeny between two curves\\\alert{polynomial
+      in the degree}.
+  \item[Quantum (Childs-Jao-Soukharev):] HShP + isogeny
+    evaluation\\\alert{subexponential in the length of the walk}.
+  \end{description}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Supersingular curves}
+
+  \emph{$\Q\otimes\End(E)$} is a quaternion algebra (non-commutative)
+
+  \begin{block}{Facts}
+    \begin{itemize}
+    \item Every supersingular curve is defined over \alert{$\F_{p^2}$}.
+    \item $\alert{E(\F_{p^2}) \simeq (\Z/(p+1)\Z)^2}\;$ (up to twist).
+    \item There are $g(X_0(p))+1 \sim\alert{\frac{p+1}{12}}$ supersingular curves
+      up to isomorphism.
+    \item For every \emph{maximal order type} of the quaternion
+      algebra $\Q_{p,\infty}$ there are \emph{$1$ or $2$ curves over
+        $\F_{p^2}$} having endomorphism ring isomorphic to it.
+    \item There is a \alert{unique isogeny class} of supersingular
+      curves over $\bar{\F}_p$ (there are two over any finite field).
+    \item The graph of \emph{$\ell$}-isogenies is
+      \emph{$\ell+1$}-regular.
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Good and bad news}
+  
+  \begin{description}
+  \item[Good news:] there is no action of a commutative class group.
+  \item[Bad news:] there is no action of a commutative class group.
+  \end{description}
+
+  \alert{However:} left ideals of \emph{$\End(E)$} still act on the isogeny graph:
+
+  \begin{center}
+    \begin{tikzpicture}
+      \large
+      \node[matrix of nodes, ampersand replacement=\&, column sep=3cm, row sep=1.5cm] (diagram) {
+        |(E)| $E$ \& |(Es)| $E'$ \\
+        |(Ep)| {$E''$} \& |(Eps)| {$E'''$}\\
+      };
+      \path[->] (E) edge node[auto] {$\a$} (Es);
+      \path[->] (Ep) edge node[auto,swap] {$\a_\b$} (Eps);
+      \path[->] (E) edge node[auto,swap] {$\b$} (Ep);
+      \path[->] (Es) edge node[auto] {$\b_\a$} (Eps);
+    \end{tikzpicture}
+  \end{center}
+
+  \begin{itemize}
+  \item The action factors through the \emph{right-isomorphism}
+    equivalence of ideals.
+  \item Ideal classes form a \emph{groupoid} (in other words, an
+    undirected multigraph\dots).
+  \end{itemize}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{From ideals back to isogenies}
+
+  In practice, computations with ideals are hard. We fix, instead:
+
+  \begin{itemize}
+  \item Small primes \bl{$\ell_A$}, \rd{$\ell_B$};
+  \item A large prime \emph{$p$} such that $p+1 =
+    \bl{\ell_A^{e_A}}\rd{\ell_B^{e_B}}$;
+  \item A supersingular curve \emph{$E$} over \emph{$\F_{p^2}$}, such that
+    \[E \simeq (\Z/(p+1)\Z)^2 = \bl{(\Z/\ell_A^{e_A}\Z)^2} \oplus \rd{(\Z/\ell_B^{e_B}\Z)^2},\]
+  \item We use isogenies of degrees \bl{$\ell_A^{e_A}$} and
+    \rd{$\ell_B^{e_B}$} with \emph{cyclic rational kernels};
+  \item The diagram below can be constructed in time
+    $\text{poly}(\bl{e_A}+\rd{e_B})$.
+  \end{itemize}
+
+  \begin{center}
+    \begin{tikzpicture}
+      \begin{scope}
+        \draw (0,1.2) node[anchor=east,blue] {$\ker\phi=\cyc{P}\subset E[\ell_A^{e_A}]$};
+        \draw (0,0.4) node[anchor=east,red] {$\ker\psi=\cyc{Q}\subset E[\ell_B^{e_B}]$};
+        \draw (0,-0.4) node[anchor=east,blue] {$\ker\phi' = \cyc{\rd{\psi}(P)}$};
+        \draw (0,-1.2) node[anchor=east,red] {$\ker\psi' = \cyc{\bl{\phi}(Q)}$};
+      \end{scope}
+      \begin{scope}[xshift=4.5cm]
+        \large
+        \node[matrix of nodes, ampersand replacement=\&, column sep=3cm, row sep=1.5cm] (diagram) {
+          |(E)| $E$ \& |(Es)| $E/\cyc{\bl{P}}$ \\
+          |(Ep)| {$E/\cyc{\rd{Q}}$} \& |(Eps)| {$E/\cyc{\bl{P},\rd{Q}}$}\\
+        };
+        \path[->,blue] (E) edge node[auto] {$\phi$} (Es);
+        \path[->,blue] (Ep) edge node[auto,swap] {$\phi'$} (Eps);
+        \path[->,red] (E) edge node[auto,swap] {$\psi$} (Ep);
+        \path[->,red] (Es) edge node[auto] {$\psi'$} (Eps);
+      \end{scope}
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{A ZK proof of knowledge}
+  
+  \emph{Secret}: knowledge of the \emph{kernel} of a degree
+  \bl{$\ell_A^{e_A}$} isogeny from $E$ to $E/\cyc{\bl{S}}$.
+
+  \begin{center}
+    \begin{tikzpicture}
+      \large
+      \node[matrix of nodes, ampersand replacement=\&, column sep=3cm, row sep=1.5cm] (diagram) {
+        |(E)| $E$ \& |(Es)| $E/\cyc{\bl{S}}$ \\
+        |(Ep)| {\uncover<2->{$E/\cyc{\rd{P}}$}} \& |(Eps)| {\uncover<2->{$E/\cyc{\rd{P},\bl{S}}$}}\\
+      };
+      \path[blue] (E) edge node[auto] {$\phi$} (Es);
+      \uncover<2->{\path[blue] (Ep) edge node[auto,swap] {\alt<4>{$\phi'$}{?}} (Eps);}
+      \uncover<2->{\path[red] (E) edge node[auto,swap] {\alt<3>{$\psi$}{?}} (Ep);}
+      \uncover<2->{\path[red] (Eps) edge node[auto,swap] {\alt<3>{$\psi'$}{?}} (Es);}
+    \end{tikzpicture}  
+  \end{center}
+
+  \begin{enumerate}
+  \item<2-> Choose a random point \red{$P\in E[\ell_B^{e_B}]$}, compute the diagram;
+  \item<2-> Publish the curves $E/\cyc{\rd{P}}$ and $E/\cyc{\rd{P},\bl{S}}$;
+  \item<3-> The verifier asks one of the two questions:
+    \begin{itemize}
+    \item<3-> Reveal the degree \rd{$\ell_B^{e_B}$} isogenies;
+    \item<4-> Reveal the \bl{bottom} isogeny.
+    \end{itemize}
+  \end{enumerate}
+\end{frame}  
+
+%%
+
+\begin{frame}
+  \frametitle{Security}
+
+  \begin{center}
+    \begin{tikzpicture}
+      \large
+      \node[matrix of nodes, ampersand replacement=\&, column sep=3cm, row sep=1.5cm] (diagram) {
+        |(E)| $E$ \& |(Es)| $E/\cyc{\bl{S}}$ \\
+        |(Ep)| {$E/\cyc{\rd{\alt<-2>{P}{Q}}}$} \& |(Eps)| {$E/\cyc{\rd{\alt<-2>{P}{Q}},\bl{S}}$}\\
+      };
+      \path[blue] (E) edge node[auto] {$\phi$} (Es);
+      \path[blue] (Ep) edge node[auto,swap] {\alt<1>{$\phi'$}{?}} (Eps);
+      \path[red] (E) edge node[auto,swap] {\alt<2->{$\psi$}{?}} (Ep);
+      \path[red] (Eps) edge node[auto,swap] {\alt<2->{$\psi'$}{?}} (Es);
+    \end{tikzpicture}  
+  \end{center}
+
+  \begin{overlayarea}{\textwidth}{6cm}
+    \begin{onlyenv}<1>
+      What information does \emph{$\phi'$} give on \emph{$\phi$}?
+      \begin{itemize}
+      \item We prove that the protocol is zero-knowledge if
+        distinguishing a pair \emph{$(\phi,\phi')$} from a random pair
+        \emph{$(\phi,\chi)$} is hard.
+      \item We conjecture this problem is hard, even using ideal
+        classes.
+      \end{itemize}
+    \end{onlyenv}
+    
+    \begin{onlyenv}<2-> What information do \emph{$\psi$} and
+      \emph{$\psi'$} give on \emph{$\phi$}?
+      \begin{itemize}
+      \item On the first round, we learn \emph{$(P,\phi(P))$},
+      \item<3-> On the second round, we learn \emph{$(Q,\phi(Q))$}, 
+      \item<3-> \dots
+      \item<4-> With high probabilty, \rd{$\cyc{P,Q}=E[\ell_B^{e_B}]$},
+        and we learn $\bl{\phi(}\rd{E[\ell_B^{e_B}]}\bl{)}$.
+      \item<4-> We make $\bl{\phi(}\rd{E[\ell_B^{e_B}]}\bl{)}$ part of the
+        public data, and we conjecture that this is secure.
+      \end{itemize}
+    \end{onlyenv}
+  \end{overlayarea}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Going Diffie-Hellman}
+
+  \textbf{The idea:} \bl{Alice chooses $\phi$}, \rd{Bob chooses
+    $\psi$}.
+  
+  \begin{center}
+    \begin{tikzpicture}
+      \large
+      \node[matrix of nodes, ampersand replacement=\&, column sep=3cm, row sep=1.5cm] (diagram) {
+        |(E)| $E$ \& |(Es)| $E/\cyc{\bl{P}}$ \\
+        |(Ep)| {$E/\cyc{\rd{Q}}$} \& |(Eps)| {$E/\cyc{\rd{P},\bl{Q}}$}\\
+      };
+      \path[blue] (E) edge node[auto] {$\phi$} (Es);
+      \path[blue] (Ep) edge node[auto,swap] {$\phi'$} (Eps);
+      \path[red] (E) edge node[auto,swap] {$\psi$} (Ep);
+      \path[red] (Eps) edge node[auto,swap] {$\psi'$} (Es);
+    \end{tikzpicture}  
+  \end{center}
+  
+  \textbf{Problem:}
+  \begin{itemize}
+  \item How does \bl{Alice} know the kernel of \bl{$\phi'$}?
+  \item How does \rd{Bob} know the kernel of \rd{$\psi'$}?
+  \end{itemize}
+
+  \pause
+
+  \textbf{Our solution:}
+  \begin{itemize}
+  \item It is not so dangerous to publish $\bl{\phi(}\rd{E[\ell_B^{e_B}]}\bl{)}$.
+  \item It is not so dangerous to publish $\rd{\psi(}\bl{E[\ell_A^{e_A}]}\rd{)}$.
+  \end{itemize}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Our proposal}
+
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+      \begin{block}{}
+        \emph{Public data:}
+        \begin{itemize}
+          \setlength{\itemsep}{1.5ex}
+        \item Prime $p$ such that $p+1 = \bl{\ell_A^a}\rd{\ell_B^b}$;
+        \item Supersingular curve \emph{$E\simeq (\Z/(p+1)\Z)^2$};
+        \item \bl{$E[\ell_A^a] = \cyc{P_A,Q_A}$};
+        \item \rd{$E[\ell_B^b] = \cyc{P_B,Q_B}$}.
+        \end{itemize}
+
+        \emph{Secret data:}
+        \begin{itemize}
+          \setlength{\itemsep}{1.5ex}
+        \item \bl{$R_A = m_AP_A + n_AQ_A$},
+        \item \rd{$R_B = m_BP_B + n_BQ_B$},
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.58\textwidth}
+      \begin{center}
+        \begin{tikzpicture}
+          \large
+          \node[matrix of nodes, ampersand replacement=\&, column sep=4mm, row sep=2cm] (diagram) {
+            \& |(1)| $E$ \\
+            |(a)| \parbox{1.5cm}{$E/\cyc{\bl{R_A}}$\\\uncover<2->{{\footnotesize $\bl{\phi(}\rd{P_B}\bl{)}\\\bl{\phi(}\rd{Q_B}\bl{)}$}}} \& \&
+            |(b)| \parbox{1.5cm}{$E/\cyc{\rd{R_B}}$\\\uncover<2->{{\footnotesize $\rd{\psi(}\bl{P_A}\rd{)}\\\rd{\psi(}\bl{Q_A}\rd{)}$}}}\\
+            \normalsize $\frac{E/\cyc{\bl{R_A}}}{\alert{\bl{\phi(}\rd{R_B}\bl{)}}} \simeq$ \&
+            |(ab)|  $E/\cyc{\bl{R_A},\rd{R_B}}$ \&
+            \normalsize $\simeq \frac{E/\cyc{\rd{R_B}}}{\alert{\rd{\psi(}\bl{R_A}\rd{)}}}$\\
+          };
+          \small
+          \path[blue] (1) edge node[auto,swap](phia) {$\phi$} (a);
+          \path[red] (1) edge node[auto](phib) {$\psi$} (b);
+          \path[red] (a) edge node[auto,swap](psia){$\psi'$} (ab);
+          \path[blue] (b) edge node[auto](psib){$\phi'$} (ab);
+          \uncover<3>{\path[dashed,->] (phia) edge node[auto]{\footnotesize $\bl{\phi(}\rd{R_B}\bl{)}$} (psia);}
+          \uncover<3>{\path[dashed,->] (phib) edge node[auto,swap]{\footnotesize $\rd{\psi(}\bl{R_A}\rd{)}$} (psib);}
+        \end{tikzpicture}
+      \end{center}  
+    \end{column}
+  \end{columns}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Generic attacks}
+  
+  \emph{Problem:} Given \emph{$E,E'$}, isogenous of degree
+  \emph{$\ell^n$}, find \emph{$\phi:E\to E'$}.
+
+  \begin{center}
+    \begin{tikzpicture}[xscale=4,coils/.style={-angle 90,decorate,decoration={coil,aspect=0,amplitude=1pt}}]
+      \large
+      \draw (0,2) node(E) {$E$};
+
+      \draw (1,4) node(E1) {$E/\cyc{P_0}$};
+      \draw (1,2) node(Ei) {$E_i/\cyc{P_i}$};
+      \draw (1,0) node(En) {$E/\cyc{P_{\ell^{n/2}}}$};
+      \draw (1,3) node(dots1) {$\vdots$};
+      \draw (1,1) node(dots2) {$\vdots$};
+
+      \draw (2,2) node(E') {$E'$};
+
+      \draw (E) edge[coils] node[auto] {\normalsize$\ell^{n/2}$} (E1);
+      \draw (E) edge[coils] (Ei);
+      \draw (E) edge[coils] (En);
+      \draw (E) edge[coils] (dots1);
+      \draw (E) edge[coils] (dots2);
+
+      \draw (E') edge[coils] node[auto,swap] {\normalsize$\ell^{n/2}$} (Ei);
+    \end{tikzpicture}
+  \end{center}
+
+  \begin{itemize}
+  \item With high probability $\phi$ is the unique collision (or \textit{claw}).
+  \item A \emph{quantum claw finding} algorithm solves the problem in
+    $\alert{O(\ell^{n/3})}$ (Tani).
+  \end{itemize}
+
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Our recommended parameters}
+  
+  \begin{itemize}
+  \item For efficiency chose $p$ such that \alert{$p+1 = 2^a3^b$}.
+  \item For classical $n$-bit security, choose \alert{$2^a\sim3^b\sim2^{2n}$}, hence \alert{$p\sim2^{4n}$}.
+  \item For quantum $n$-bit security, choose \alert{$2^a\sim3^b\sim2^{3n}$}, hence \alert{$p\sim2^{6n}$}.
+  \end{itemize}
+
+  \begin{block}{Practical optimizations:}
+    \begin{itemize}
+    \item $-1$ is a quadratic non-residue: \alert{$\F_{p^2}\simeq\F_p[X]/(X^2+1)$}.
+    \item $E$ (or its twist) has a $4$-torsion point: it has an
+      \alert{Edwards} and a \alert{Montgomery} form.
+    \item Other optimizations in the next slides.
+    \end{itemize}
+  \end{block}
+
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Analysis of the key exchange}
+  
+  \begin{block}{Round 1}
+    \begin{itemize}
+    \item Pick random \alert{$m,n\in\Z$};
+    \item Compute \alert{$R = mP + nQ$};
+    \item Compute \alert{$\phi : E \to E/\cyc{R}$};
+    \item Evaluate \alert{$\phi(S), \phi(T)$} for some points $S,T$.
+    \end{itemize}
+  \end{block}
+  
+  \begin{block}{Round 2}
+    \begin{itemize}
+    \item Compute \alert{$R' = mP' + nQ'$};
+    \item Compute \alert{$\psi : E \to E/\cyc{R'}$};
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Evaluating composite isogenies}
+  
+  \alert{$\ord(R)=\ell^a$} and \alert{$\phi = \phi_0 \circ \phi_1 \circ \cdots
+    \circ \phi_{a-1}$}, each of degree $\alert{\ell}$
+
+  \begin{center}
+  \begin{tikzpicture}[/triangle,scale=1.1]
+    \def\n{5}
+    \pgfmathtruncatemacro{\pn}{\n-1}
+    
+
+    \draw(-0.4,-0.2) node{$R$};
+
+    \foreach \i in {1,...,\n} {
+      \draw(\i,\i+0.7) node{$R_\i$};
+    }
+    \foreach \i in {1,...,\n} {
+      \draw(\i,-1) node{$[\ell^\i]R$};
+    }
+    \foreach \i in {0,...,\pn} {
+      \pgfmathtruncatemacro{\ii}{\pn-\i}
+      \foreach \j in {0,...,\ii} {
+        \draw(\i+\j+0.4,\i+0.6) node{$\phi_\i$};
+      }
+    }
+    \foreach \i in {0,...,\pn} {
+      \draw(\i+0.5,-0.2) node{$[\ell]$};
+    }
+
+    \foreach \i in {1,...,\pn} {
+      \pgfmathtruncatemacro{\ii}{\n-\i}
+      \draw(\n+0.5,1.15*\i-0.1) node{\alert{\small $[\ell^\ii]R_\i$}};
+    }
+
+    \foreach \i in {0,...,\pn} {
+      \foreach \j in {0,...,\i} {
+        \draw[gray,dashed]  (\i,\j) -- (\i+1,\j+1);
+        \draw[gray,dashed]  (\i,\j) -- (\i+1,\j);
+      }
+    }
+
+    \dottriangle[$\bullet$]{\n}
+  \end{tikzpicture}
+  \end{center}
+  For each $i$, one needs to compute \alert{$[\ell^{e-i}]R_i$} in
+  order to compute $\phi_i$.
+\end{frame}
+
+%%
+
+
+\begin{frame}
+  \frametitle{What's the best strategy?}
+
+  \begin{figure}
+    \centering
+    \begin{tikzpicture}[/triangle,scale=0.35]
+      \def\n{3}
+      \newlength{\shift}
+      \setlength{\shift}{5cm}
+
+      \foreach \k in {0,...,6} {
+        \begin{scope}[xshift=\k\shift]
+          \dottriangle[$\cdot$]{\n}
+          \foreach \i in {1,...,\n} {
+            \draw(\i-1,0) -- (\i,0);
+          }
+          \foreach \i in {1,...,\n} {
+            \draw(\i-1,\i-1) -- (\i,\i);
+          }
+        \end{scope}
+      }
+
+      \begin{scope}
+        \draw (1,0)--(2,1) (2,1)--(3,2) (2,0)--(3,1);
+      \end{scope}
+
+      \begin{scope}[xshift=\shift]
+        \draw (1,0)--(2,1) (2,1)--(3,1) (2,1)--(3,2);
+      \end{scope}
+
+      \begin{scope}[xshift=2\shift]
+        \draw (1,0)--(2,1) (2,1)--(3,1) (2,2)--(3,2);
+      \end{scope}
+
+      \begin{scope}[xshift=3\shift]
+        \draw (2,0)--(3,1) (2,2)--(3,2);
+      \end{scope}
+
+      \begin{scope}[xshift=4\shift]
+        \draw (1,1)--(2,1) (2,1)--(3,2) (2,0)--(3,1);
+      \end{scope}
+
+      \begin{scope}[xshift=5\shift]
+        \draw (1,1)--(2,1) (2,1)--(3,2) (2,1)--(3,1);
+      \end{scope}
+
+      \begin{scope}[xshift=6\shift]
+        \draw (1,1)--(2,1) (2,1)--(3,1) (2,2)--(3,2);
+      \end{scope}
+    \end{tikzpicture}
+    \caption{The seven well formed strategies for $e=4$.}
+  \end{figure}
+
+  \begin{itemize}
+  \item Right edges are \alert{$\ell$-isogeny evaluation};
+  \item Left edges are \alert{multiplications by $\ell$} (about twice as expensive);
+  \end{itemize}
+
+  The best strategy can be \alert{precomputed} offline and
+  \alert{hardcoded} in an embedded system.
+
+  \begin{block}{}
+    \emph{Funny fact:} strategies are in one-to-one correspondence with
+    certain instances of Gelfand-Tsetlin patterns [OEIS, Sequence
+    A130715].
+  \end{block}
+\end{frame}
+
+%% 
+
+\begin{frame}
+\frametitle{Example}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{../optimal.png}
+  \caption{Optimal strategy for $e=512$, $\ell=2$.}
+  \label{fig:optimal}
+\end{figure}
+\end{frame}
+
+%% 
+
+\makeatletter
+\let\margin\beamer@leftmargin
+\makeatother
+
+\begin{frame}
+  \frametitle{Many optimal strategies}
+
+  \noindent
+  \hskip-\margin
+  \begin{overlayarea}{\paperwidth}{\textheight}
+  \foreach \i in {1,...,4} {
+    \only<\i>{\includegraphics[width=\paperwidth]{tree\i.pdf}}
+  }
+  \end{overlayarea}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Timings}
+  
+  \begin{block}{Reference implementation}
+    Available at \alert{\url{http://www.prism.uvsq.fr/~dfl/}}
+    \begin{itemize}
+    \item C + GMP implementation of $\F_{p^2}$;
+    \item C implementation of the key exchange;
+    \item Cython interface to the key exchange and implementation of
+      elliptic curves;
+    \item Python + Sage script for parameter generation and strategy computation.
+    \end{itemize}
+  \end{block}
+
+  \begin{center}
+    \begin{tabular}{l | r r r | r r }
+      \hline
+      & \multicolumn{3}{c|}{tuned $(2,1)$} & \multicolumn{2}{c}{balanced $(1,1)$} \\
+      & 512 bits & 768 bits & 1024 bits & 768 bits & 1024 bits \\
+      \hline
+      Alice round 1 & 28.1 ms & 65.7 ms & 122 ms & 66.8 ms & 123 ms \\
+      Alice round 2 & 23.3 ms & 54.3 ms & 101 ms & 55.5 ms & 102 ms \\
+      Bob round 1   & 28.0 ms & 65.6 ms & 125 ms & 67.1 ms & 128 ms \\
+      Bob round 2   & 22.7 ms & 53.7 ms & 102 ms & 55.1 ms & 105 ms \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{frame}
+
+%%
+
+\begin{frame}
+  \frametitle{Conclusion}
+  
+  We have proposed a new candidate primitive for \emph{post-quantum cryptography}.
+
+  \begin{itemize}
+  \item It is based on a \emph{new group theoretic construction} that
+    does not seem to have been used before.
+  \item It is based on well known objects for which a lot of good
+    software already exists.
+  \item It has a simple Zero Knowledge proof with \emph{no analogue}
+    in classic discrete log based and group action based
+    constructions.
+  \item It is reasonably \emph{fast}:
+    \begin{itemize}
+    \item More than 1000 times faster than Rostovstev and Stolbunov's
+      system at the same (classical) security level.
+    \item Running times comparable to pairing-based protocols.
+    \end{itemize}
+  \item Because of its novelty, more scrutiny is required to assess
+    its security. In particular, it is not clear \emph{what mathematical
+    assumptions} are needed to \emph{prove its security}.
+  \end{itemize}
+\end{frame}
+
+\end{document}
+
+
+
+% Local Variables:
+% mode:flyspell
+% ispell-local-dictionary:"american"
+% mode:TeX-PDF
+% mode:reftex
+% End:
+%
+% LocalWords:  Isogeny abelian isogenies hyperelliptic supersingular Frobenius
+% LocalWords:  isogenous
+
+

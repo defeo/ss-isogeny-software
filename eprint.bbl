@@ -1,204 +1,250 @@
+\providecommand{\bysame}{\leavevmode\hbox to3em{\hrulefill}\thinspace}
+\providecommand{\MR}{\relax\ifhmode\unskip\space\fi MR }
+% \MRhref is called by the amsart/book/proc definition of \MR.
+\providecommand{\MRhref}[2]{%
+  \href{http://www.ams.org/mathscinet-getitem?mr=#1}{#2}
+}
+\providecommand{\href}[2]{#2}
 \begin{thebibliography}{10}
 
+\bibitem{antipa+brown+gallant+lambert+struik+vanstone06}
+Adrian Antipa, Daniel Brown, Robert Gallant, Rob Lambert, Ren\'{e} Struik and
+  Scott Vanstone, Accelerated Verification of {ECDSA} Signatures, in:
+  \emph{Selected Areas in Cryptography 2005}, Lecture Notes in Computer Science
+  3897, pp.~307--318, Springer Berlin / Heidelberg, Berlin, Heidelberg, 2006.
+
+\bibitem{belding08-thesis}
+Juliana~V. Belding, \emph{Number Theoretic Algorithms for Elliptic Curves},
+  Ph.D. thesis, University of Maryland, 2008.
+
+\bibitem{twisted-edwards}
+Daniel Bernstein, Peter Birkner, Marc Joye, Tanja Lange and Christiane Peters,
+  {Twisted Edwards Curves}, in: \emph{Progress in Cryptology – AFRICACRYPT
+  2008}, pp.~389--405, 2008.
+
+\bibitem{efd}
+Daniel~J. Bernstein and Tanja Lange, \emph{{Explicit-Formulas Database}}, 2007,
+  \url{http://www.hyperelliptic.org/EFD/index.html}.
+
 \bibitem{Bostan}
-Alin Bostan, Fran\c{c}ois Morain, Bruno Salvy, and {\'E}ric Schost.
-\newblock Fast algorithms for computing isogenies between elliptic curves.
-\newblock {\em Math. Comp.}, 77(263):1755--1778, 2008.
+Alin Bostan, Fran\c{c}ois Morain, Bruno Salvy and {\'E}ric Schost, Fast
+  algorithms for computing isogenies between elliptic curves, \emph{Math.
+  Comp.} \textbf{77} (2008), 1755--1778.
 
 \bibitem{broker-ss}
-Reinier Br{\"o}ker.
-\newblock Constructing supersingular elliptic curves.
-\newblock {\em J. Comb. Number Theory}, 1(3):269--273, 2009.
+Reinier Br{\"o}ker, Constructing supersingular elliptic curves, \emph{J. Comb.
+  Number Theory} \textbf{1} (2009), 269--273.
 
 \bibitem{canetti}
-Ran Canetti and Hugo Krawczyk.
-\newblock Analysis of key-exchange protocols and their use for building secure
-  channels.
-\newblock In Birgit Pfitzmann, editor, {\em EUROCRYPT}, volume 2045 of {\em
-  Lecture Notes in Computer Science}, pages 453--474. Springer, 2001.
+Ran Canetti and Hugo Krawczyk, Analysis of Key-Exchange Protocols and Their Use
+  for Building Secure Channels, in: \emph{EUROCRYPT} (Birgit Pfitzmann, ed.),
+  Lecture Notes in Computer Science 2045, pp.~453--474, Springer, 2001.
+
+\bibitem{cervino04}
+Juan~M. Cervi\~{n}o, \emph{On the Correspondence between Supersingular Elliptic
+  Curves and maximal quaternionic Orders}, April 2004,
+  \url{http://arxiv.org/abs/math/0404538}.
 
 \bibitem{CGL}
-Denis~Xavier Charles, Kristin~E. Lauter, and Eyal~Z. Goren.
-\newblock Cryptographic hash functions from expander graphs.
-\newblock {\em Journal of Cryptology}, 22:93--113, 2009.
+Denis~Xavier Charles, Kristin~E. Lauter and Eyal~Z. Goren, Cryptographic Hash
+  Functions from Expander Graphs, \emph{Journal of Cryptology} \textbf{22}
+  (2009), 93--113.
 
 \bibitem{CJS}
-Andrew Childs, David Jao, and Vladimir Soukharev.
-\newblock Constructing elliptic curve isogenies in quantum subexponential time,
-  2010.
-\newblock \url{http://arxiv.org/abs/1012.4019/}.
+Andrew Childs, David Jao and Vladimir Soukharev, \emph{Constructing elliptic
+  curve isogenies in quantum subexponential time}, 2010,
+  \url{http://arxiv.org/abs/1012.4019/}.
 
 \bibitem{Couv}
-Jean-Marc Couveignes.
-\newblock Hard homogeneous spaces, 2006.
-\newblock \url{http://eprint.iacr.org/2006/291/}.
+Jean-Marc Couveignes, \emph{Hard Homogeneous Spaces}, 2006,
+  \url{http://eprint.iacr.org/2006/291/}.
 
 \bibitem{DSV}
-Giuliana Davidoff, Peter Sarnak, and Alain Valette.
-\newblock {\em Elementary number theory, group theory, and {R}amanujan graphs},
-  volume~55 of {\em London Mathematical Society Student Texts}.
-\newblock Cambridge University Press, Cambridge, 2003.
+Giuliana Davidoff, Peter Sarnak and Alain Valette, \emph{Elementary number
+  theory, group theory, and {R}amanujan graphs}, London Mathematical Society
+  Student Texts~55, Cambridge University Press, Cambridge, 2003.
+
+\bibitem{elgamal}
+Taher ElGamal, A public key cryptosystem and a signature scheme based on
+  discrete logarithms, \emph{IEEE transactions on information theory}
+  \textbf{31} (1985), 469--472.
+
+\bibitem{feige+fiat+shamir88}
+Uriel Feige, Amos Fiat and Adi Shamir, Zero-knowledge proofs of identity,
+  \emph{Journal of Cryptology} \textbf{1} (1988), 77--94.
 
 \bibitem{Gal}
-Steven~D. Galbraith.
-\newblock Constructing isogenies between elliptic curves over finite fields.
-\newblock {\em LMS J. Comput. Math.}, 2:118--138 (electronic), 1999.
+Steven~D. Galbraith, Constructing isogenies between elliptic curves over finite
+  fields, \emph{LMS J. Comput. Math.} \textbf{2} (1999), 118--138 (electronic).
 
 \bibitem{GHS}
-Steven~D. Galbraith, Florian Hess, and Nigel~P. Smart.
-\newblock Extending the {GHS} {W}eil descent attack.
-\newblock In {\em Advances in cryptology---{EUROCRYPT} 2002 ({A}msterdam)},
-  volume 2332 of {\em Lecture Notes in Comput. Sci.}, pages 29--44. Springer,
-  Berlin, 2002.
+Steven~D. Galbraith, Florian Hess and Nigel~P. Smart, \emph{Extending the {GHS}
+  {W}eil descent attack}, Advances in cryptology---{EUROCRYPT} 2002
+  ({A}msterdam), Lecture Notes in Comput. Sci. 2332, Springer, Berlin, 2002,
+  pp.~29--44.
 
 \bibitem{gs}
-Steven~D. Galbraith and Anton Stolbunov.
-\newblock Improved algorithm for the isogeny problem for ordinary elliptic
-  curves, 2011.
-\newblock \url{http://arxiv.org/abs/1105.6331/}.
+Steven~D. Galbraith and Anton Stolbunov, \emph{Improved Algorithm for the
+  Isogeny Problem for Ordinary Elliptic Curves}, 2011,
+  \url{http://arxiv.org/abs/1105.6331/}.
+
+\bibitem{goldreich+micali+widgerson91}
+Oded Goldreich, Silvio Micali and Avi Wigderson, Proofs that yield nothing but
+  their validity or all languages in {NP} have zero-knowledge proof systems,
+  \emph{Journal of the Association for Computing Machinery} \textbf{38} (1991),
+  690--728.
+
+\bibitem{pqcrypto}
+David Jao and Luca~De Feo, Towards Quantum-Resistant Cryptosystems from
+  Supersingular Elliptic Curve Isogenies, in: \emph{PQCrypto} (Bo-Yin Yang,
+  ed.), Lecture Notes in Computer Science 7071, pp.~19--34, Springer, 2011.
 
 \bibitem{JMV}
-David Jao, Stephen~D. Miller, and Ramarathnam Venkatesan.
-\newblock Expander graphs based on {GRH} with an application to elliptic curve
-  cryptography.
-\newblock {\em J. Number Theory}, 129(6):1491--1504, 2009.
+David Jao, Stephen~D. Miller and Ramarathnam Venkatesan, Expander graphs based
+  on {GRH} with an application to elliptic curve cryptography, \emph{J. Number
+  Theory} \textbf{129} (2009), 1491--1504.
 
 \bibitem{joux}
-Antoine Joux.
-\newblock The {W}eil and {T}ate pairings as building blocks for public key
-  cryptosystems.
-\newblock In {\em Algorithmic number theory ({S}ydney, 2002)}, volume 2369 of
-  {\em Lecture Notes in Comput. Sci.}, pages 20--32. Springer, Berlin, 2002.
+Antoine Joux, \emph{The {W}eil and {T}ate pairings as building blocks for
+  public key cryptosystems}, Algorithmic number theory ({S}ydney, 2002),
+  Lecture Notes in Comput. Sci. 2369, Springer, Berlin, 2002, pp.~20--32.
+
+\bibitem{kocher+jaffe+jun99}
+Paul Kocher, Joshua Jaffe and Benjamin Jun, {Differential Power Analysis}, in:
+  \emph{Advances in Cryptology — CRYPTO' 99}, Lecture Notes in Computer
+  Science 1666, pp.~388--397, Springer Berlin Heidelberg, Berlin, Heidelberg,
+  December 1999.
+
+\bibitem{Kohel}
+David Kohel, \emph{Endomorphism rings of elliptic curves over finite fields},
+  Ph.D. thesis, University of California, Berkeley, 1996.
 
 \bibitem{lo}
-Jeffrey~C. Lagarias and Andrew~M. Odlyzko.
-\newblock Effective versions of the {C}hebotarev density theorem.
-\newblock In {\em Algebraic number fields: {$L$}-functions and {G}alois
-  properties ({P}roc. {S}ympos., {U}niv. {D}urham, {D}urham, 1975)}, pages
-  409--464. Academic Press, London, 1977.
+Jeffrey~C. Lagarias and Andrew~M. Odlyzko, \emph{Effective versions of the
+  {C}hebotarev density theorem}, Algebraic number fields: {$L$}-functions and
+  {G}alois properties ({P}roc. {S}ympos., {U}niv. {D}urham, {D}urham, 1975),
+  Academic Press, London, 1977, pp.~409--464.
 
 \bibitem{Lub}
-Alexander Lubotzky.
-\newblock {\em Discrete groups, expanding graphs and invariant measures},
-  volume 125 of {\em Progress in Mathematics}.
-\newblock Birkh\"auser Verlag, Basel, 1994.
-\newblock With an appendix by Jonathan D. Rogawski.
+Alexander Lubotzky, \emph{Discrete groups, expanding graphs and invariant
+  measures}, Progress in Mathematics 125, Birkh\"auser Verlag, Basel, 1994,
+  With an appendix by Jonathan D. Rogawski.
 
 \bibitem{LubPS}
-Alexander Lubotzky, Ralph Phillips, and Peter Sarnak.
-\newblock Ramanujan graphs.
-\newblock {\em Combinatorica}, 8(3):261--277, 1988.
+Alexander Lubotzky, Ralph Phillips and Peter Sarnak, Ramanujan graphs,
+  \emph{Combinatorica} \textbf{8} (1988), 261--277.
 
 \bibitem{Mestre}
-Jean-Fran\c{c}ois Mestre.
-\newblock La m\'ethode des graphes. {E}xemples et applications.
-\newblock In {\em Proceedings of the international conference on class numbers
-  and fundamental units of algebraic number fields ({K}atata, 1986)}, pages
-  217--242, Nagoya, 1986. Nagoya Univ.
+Jean-Fran\c{c}ois Mestre, La m\'ethode des graphes. {E}xemples et applications,
+  in: \emph{Proceedings of the international conference on class numbers and
+  fundamental units of algebraic number fields ({K}atata, 1986)}, pp.~217--242,
+  Nagoya Univ., Nagoya, 1986.
 
 \bibitem{montgomery}
-Peter~L. Montgomery.
-\newblock Speeding the pollard and elliptic curve methods of factorization.
-\newblock {\em Mathematics of Computation}, 48(177):243--264, 1987.
+Peter~L. Montgomery, Speeding the Pollard and Elliptic Curve Methods of
+  Factorization, \emph{Mathematics of Computation} \textbf{48} (1987),
+  243--264.
+
+\bibitem{oeis}
+{OEIS Foundation Inc.}, \emph{The On-Line Encyclopedia of Integer Sequences},
+  \url{http://oeis.org/A130715}, 2012.
 
 \bibitem{quis}
-Christophe Petit, Kristin Lauter, and Jean-Jacques Quisquater.
-\newblock Full cryptanalysis of {LPS} and {M}orgenstern hash functions.
-\newblock In {\em Proceedings of the 6th international conference on Security
-  and Cryptography for Networks}, SCN '08, pages 263--277, Berlin, Heidelberg,
-  2008. Springer-Verlag.
+Christophe Petit, Kristin Lauter and Jean-Jacques Quisquater, Full
+  Cryptanalysis of {LPS} and {M}orgenstern Hash Functions, in:
+  \emph{Proceedings of the 6th international conference on Security and
+  Cryptography for Networks}, SCN '08, pp.~263--277, Springer-Verlag, Berlin,
+  Heidelberg, 2008.
 
 \bibitem{pizer1}
-Arnold~K. Pizer.
-\newblock Ramanujan graphs and {H}ecke operators.
-\newblock {\em Bull. Amer. Math. Soc. (N.S.)}, 23(1):127--137, 1990.
+Arnold~K. Pizer, Ramanujan graphs and {H}ecke operators, \emph{Bull. Amer.
+  Math. Soc. (N.S.)} \textbf{23} (1990), 127--137.
 
 \bibitem{pizer2}
-Arnold~K. Pizer.
-\newblock Ramanujan graphs.
-\newblock In {\em Computational perspectives on number theory ({C}hicago, {IL},
-  1995)}, volume~7 of {\em AMS/IP Stud. Adv. Math.}, pages 159--178. Amer.
-  Math. Soc., Providence, RI, 1998.
+Arnold~K. Pizer, \emph{Ramanujan graphs}, Computational perspectives on number
+  theory ({C}hicago, {IL}, 1995), AMS/IP Stud. Adv. Math.~7, Amer. Math. Soc.,
+  Providence, RI, 1998, pp.~159--178.
+
+\bibitem{pointcheval95-pp}
+David Pointcheval, A New Identification Scheme Based on the Perceptrons
+  Problem, in: \emph{Advances in Cryptology — EUROCRYPT '95}, Lecture Notes
+  in Computer Science 921, pp.~319--328, Springer Berlin / Heidelberg, Berlin,
+  Heidelberg, 1995.
 
 \bibitem{R&S}
-Alexander Rostovtsev and Anton Stolbunov.
-\newblock Public-key cryptosystem based on isogenies, 2006.
-\newblock \url{http://eprint.iacr.org/2006/145/}.
+Alexander Rostovtsev and Anton Stolbunov, \emph{Public-key cryptosystem based
+  on isogenies}, 2006, \url{http://eprint.iacr.org/2006/145/}.
 
 \bibitem{Sarnak}
-Peter Sarnak.
-\newblock {\em Some applications of modular forms}, volume~99 of {\em Cambridge
-  Tracts in Mathematics}.
-\newblock Cambridge University Press, Cambridge, 1990.
+Peter Sarnak, \emph{Some applications of modular forms}, Cambridge Tracts in
+  Mathematics~99, Cambridge University Press, Cambridge, 1990.
+
+\bibitem{shamir89-pkp}
+Adi Shamir, An efficient identification scheme based on permuted kernels
+  (extended abstract), in: \emph{Proceedings on Advances in cryptology}, CRYPTO
+  '89, pp.~606--609, Springer-Verlag New York, Inc., New York, NY, USA, 1989.
 
 \bibitem{Sil}
-Joseph~H. Silverman.
-\newblock {\em The arithmetic of elliptic curves}, volume 106 of {\em Graduate
-  Texts in Mathematics}.
-\newblock Springer-Verlag, New York, 1992.
-\newblock Corrected reprint of the 1986 original.
+Joseph~H. Silverman, \emph{The arithmetic of elliptic curves}, Graduate Texts
+  in Mathematics 106, Springer-Verlag, New York, 1992, Corrected reprint of the
+  1986 original.
 
-\bibitem{sml09}
-Douglas Stebila, Michele Mosca, and Norbert L{\"u}tkenhaus.
-\newblock The case for quantum key distribution.
-\newblock In Alexander Sergienki, Saverio Pascazio, and Paolo Villoresi,
-  editors, {\em Quantum Communication and Quantum Networking: First
-  International Conference, QuantumComm 2009}, volume~36 of {\em Lecture Notes
-  of the Institute for Computer Sciences, Social Informatics and
-  Telecommunications Engineering}. Springer, 2010.
+\bibitem{solinas01}
+Jerome~A. Solinas, \emph{Low-Weight Binary Representations for Pairs of
+  Integers}, National Security Agency, USA, Report, 2001.
 
 \bibitem{Sage}
-William~A. Stein et~al.
-\newblock {\em {S}age {M}athematics {S}oftware ({V}ersion 4.6.2)}.
-\newblock The Sage Development Team, 2011.
-\newblock {\url{http://www.sagemath.org}}.
+William~A. Stein et~al., \emph{{S}age {M}athematics {S}oftware ({V}ersion
+  4.6.2)}, The Sage Development Team, 2011, {\url{http://www.sagemath.org}}.
+
+\bibitem{stern94-CLE}
+Jacques Stern, Designing Identification Schemes with Keys of Short Size, in:
+  \emph{Advances in Cryptology — CRYPTO '94}, Lecture Notes in Computer
+  Science 839, pp.~164--173, Springer Berlin / Heidelberg, Berlin, Heidelberg,
+  1994.
+
+\bibitem{stern94-SD}
+Jacques Stern, A new identification scheme based on syndrome decoding, in:
+  \emph{Advances in Cryptology — CRYPTO' 93}, Lecture Notes in Computer
+  Science 773, pp.~13--21, Springer Berlin / Heidelberg, Berlin, Heidelberg,
+  1994.
 
 \bibitem{stolbunov-red}
-Anton Stolbunov.
-\newblock Reductionist security arguments for public-key cryptographic schemes
-  based on group action.
-\newblock In Stig~F. Mj{\o}lsnes, editor, {\em Norsk
-  informasjonssikkerhetskonferanse (NISK)}, pages 97--109, 2009.
+Anton Stolbunov, Reductionist Security Arguments for Public-Key Cryptographic
+  Schemes Based on Group Action, in: \emph{Norsk
+  informasjonssikkerhetskonferanse (NISK)} (Stig~F. Mj{\o}lsnes, ed.),
+  pp.~97--109, 2009.
 
 \bibitem{Stol}
-Anton Stolbunov.
-\newblock Constructing public-key cryptographic schemes based on class group
-  action on a set of isogenous elliptic curves.
-\newblock {\em Adv. Math. Commun.}, 4(2):215--235, 2010.
+Anton Stolbunov, Constructing public-key cryptographic schemes based on class
+  group action on a set of isogenous elliptic curves, \emph{Adv. Math. Commun.}
+  \textbf{4} (2010), 215--235.
 
 \bibitem{tani}
-Seiichiro Tani.
-\newblock {Claw Finding Algorithms Using Quantum Walk}.
-\newblock arXiv:0708.2584, March 2008.
+Seiichiro Tani, \emph{{Claw Finding Algorithms Using Quantum Walk}},
+  \url{http://arxiv.org/abs/0708.2584}, March 2008.
 
 \bibitem{Tate}
-John Tate.
-\newblock Endomorphisms of abelian varieties over finite fields.
-\newblock {\em Invent. Math.}, 2:134--144, 1966.
+John Tate, Endomorphisms of abelian varieties over finite fields, \emph{Invent.
+  Math.} \textbf{2} (1966), 134--144.
 
 \bibitem{teske-ph}
-Edlyn Teske.
-\newblock The pohlig-hellman method generalized for group structure
-  computation.
-\newblock {\em Journal of Symbolic Computation}, 27(6):521--534, 1999.
+Edlyn Teske, The Pohlig-Hellman Method Generalized for Group Structure
+  Computation, \emph{Journal of Symbolic Computation} \textbf{27} (1999),
+  521--534.
 
 \bibitem{Pari}
-{The PARI~Group}, Bordeaux.
-\newblock {\em {PARI/GP, version {\tt 2.4.3}}}, 2008.
-\newblock available from \url{http://pari.math.u-bordeaux.fr/}.
+{The PARI~Group}, Bordeaux, \emph{{PARI/GP, version {\tt 2.4.3}}}, 2008,
+  available from \url{http://pari.math.u-bordeaux.fr/}.
 
 \bibitem{Velu}
-Jacques V{\'e}lu.
-\newblock Isog\'enies entre courbes elliptiques.
-\newblock {\em C. R. Acad. Sci. Paris S\'er. A-B}, 273:A238--A241, 1971.
+Jacques V{\'e}lu, Isog\'enies entre courbes elliptiques, \emph{C. R. Acad. Sci.
+  Paris S\'er. A-B} \textbf{273} (1971), A238--A241.
 
 \bibitem{zhang}
-Shengyu Zhang.
-\newblock {Promised and Distributed Quantum Search Computing and
-  Combinatorics}.
-\newblock In Lusheng Wang, editor, {\em Proceedings of the Eleventh Annual
-  International Conference on Computing and Combinatorics}, volume 3595 of {\em
-  Lecture Notes in Computer Science}, pages 430--439, Berlin, Heidelberg, 2005.
-  Springer Berlin / Heidelberg.
+Shengyu Zhang, {Promised and Distributed Quantum Search Computing and
+  Combinatorics}, in: \emph{Proceedings of the Eleventh Annual International
+  Conference on Computing and Combinatorics}, Lecture Notes in Computer Science
+  3595, pp.~430--439, Springer Berlin / Heidelberg, Berlin, Heidelberg, 2005.
 
 \end{thebibliography}

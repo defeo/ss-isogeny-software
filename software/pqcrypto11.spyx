@@ -1,0 +1,1272 @@
+# Copyright (c) 2011 Luca De Feo.
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+from gfp2 cimport *
+from sage.rings.ring cimport Field
+from sage.structure.element cimport Element, FieldElement, ModuleElement, RingElement
+from sage.structure.sage_object cimport SageObject
+from sage.rings.finite_rings.element_base cimport FinitePolyExtElement
+from sage.rings.finite_rings.finite_field_base cimport FiniteField as FiniteField_base
+from sage.rings.finite_rings.finite_field_ext_pari import FiniteField_ext_pari
+import cython
+
+from sage.rings.finite_rings.constructor import FiniteField
+from sage.rings.integer cimport Integer
+from sage.libs.pari.gen import pari
+from sage.misc.latex import latex
+from sage.rings.all import PolynomialRing
+from sage.schemes.elliptic_curves.constructor import EllipticCurve
+from sage.categories.finite_fields import FiniteFields
+from sage.rings.arith import is_square
+from sage.misc.functional import is_odd
+
+
+#############################################################################
+#   Cython Wrapper for GF(p^2) arithmetic in gfp2.c                         #
+#############################################################################
+
+# This constant is almost useless.  It says how many small scalars of
+# GF(p) should be pre-computed and held in memory.
+cdef enum:
+    precomputed_scalars_bound = 10
+
+cdef class MyGFp2(FiniteField_base):
+    """
+    This class represents the finite field GF(p^2).  It is mostly a
+    wrap-around to make Sage use it as a native finite field.
+    """
+    cdef readonly GF_params __modulus
+    cdef __char
+    cdef __pari_impl
+    cdef readonly scalars
+
+    # One day, we could use this instead:
+    #Element = MyGFp2Element
+    def _element_constructor_(self, value=None):
+        cdef MyGFp2Element res = MyGFp2Element(self)
+
+        if value is None:
+            return res
+
+        # If value is already an element of MyGFp2Element, we simply
+        # return it. (elements are immutable)
+        if PY_TYPE_CHECK(value, MyGFp2Element):
+            return value
+        
+        # We have precomputed some scalars, for efficiency
+        if ((PY_TYPE_CHECK(value, int) or PY_TYPE_CHECK(value, Integer)) and
+            abs(value) < precomputed_scalars_bound):
+            return self.scalars[value]
+        
+        # We try to convert to an element of the base field
+        try:
+            a = self.base()(value)
+        except TypeError:
+            pass
+        else:
+            s = '0x' + a.lift().str(16)
+            set_GF(&res._rep, '0', s)
+            return res
+            
+        # We try to convert to Sage's standard representation
+        # of GF(p^2), then extract the value
+        try:
+            x = self.__pari_impl(value)
+        except TypeError:
+            pass
+        else:
+            p = x.polynomial()
+            return p[1]*self.gen() + p[0]
+
+        raise ValueError, "Cannot coerce element %s to self " % value
+
+    
+    def __init__(self, p, names, category=None):
+        # if not is_prime(p):
+        #     raise ValueError, "Characteristic must be prime"
+
+        self.__char = p
+        base = FiniteField(p)
+
+        s = '0x' + p.str(16)
+        if not setup_GF(&self.__modulus, s):
+            raise ValueError, "This representation of GF(p^2) requires -1 to be a quadratic non-residue modulo p"
+
+        self.__pari_impl = FiniteField_ext_pari(p**2, names, modulus=base[names]([1,0,1]))
+        Field.__init__(self, base, names, category=category or FiniteFields())
+
+        self.scalars = ([self(base(i)) for i in range(precomputed_scalars_bound)] +
+                        [self(base(i)) for i in range(-precomputed_scalars_bound + 1, 0)])
+
+    def __dealloc__(self):
+        free_GF(&self.__modulus)
+
+    cpdef degree(self):
+        return 2
+    
+    cpdef characteristic(self):
+        return self.__char
+
+    def __repr__(self):
+        return ("Fast and dirty implementation of a finite field in " + str(self._names[0]) + " of size " +
+                str(self.characteristic()) + "^" + str(self.degree()))
+
+    cpdef Element random_element(self):
+        a = self.base().random_element()
+        b = self.base().random_element()
+        return self.gen()*a + b
+
+    cpdef _coerce_map_from_(self, S):
+        return self.base().has_coerce_map_from(S)
+
+    cpdef gen(self, ignored=None):
+        cdef MyGFp2Element res = MyGFp2Element(self)
+        set_GF(&res._rep, '1', '0')
+        return res
+
+    cpdef order(self):
+        return self.__char ** 2
+
+    def polynomial(self, name=None):
+        P = self.polynomial_ring(name)
+        return P.gen() ** 2 + 1
+
+    # Interaction with pari (for factorization, etc.)
+    def _finite_field_ext_pari_(self):
+        return self.__pari_impl
+
+    def _finite_field_ext_pari_modulus_as_str(self):
+        return self.__pari_impl.modulus()._pari_init_()
+
+    def _pari_modulus(self):
+        f = pari(str(self.modulus()))
+        return f.subst('x', 'a') * pari("Mod(1,%s)"%self.characteristic())
+        
+
+cdef class MyGFp2Element(FinitePolyExtElement):
+    """
+    This class represents an element of the finite field GF(p^2).  It
+    is mostly a wrap-around to make Sage use it as a native object.
+    """
+    cdef GF _rep
+    cdef GF_params* _modulus
+    
+    def __init__(self, parent=None):
+        self._parent = parent
+        self._modulus = &(<MyGFp2>parent).__modulus
+        init_GF(&self._rep, self._modulus)
+        FieldElement.__init__(self, parent)
+
+    cdef MyGFp2Element _new_c(self):
+        cdef MyGFp2Element x
+        x = PY_NEW(MyGFp2Element)
+        x._parent = self._parent
+        x._modulus = self._modulus
+        init_GF(&x._rep, x._modulus)
+        return x
+        
+    cpdef ModuleElement copy(self):
+        """
+        Duplicate an element in a new memory slot. Warning:
+          A = B.copy()
+        and
+          A = B
+        do not have the same sematic!
+        """
+        cdef MyGFp2Element c = self._new_c()
+        copy_GF(&c._rep, self._rep)
+        return c
+
+    cpdef ModuleElement _add_(self, ModuleElement other):
+        cdef MyGFp2Element c = self._new_c()
+        add_GF(&c._rep, self._rep, (<MyGFp2Element>other)._rep)
+        return c
+
+    cpdef ModuleElement _sub_(self, ModuleElement other):
+        cdef MyGFp2Element c = self._new_c()
+        sub_GF(&c._rep, self._rep, (<MyGFp2Element>other)._rep)
+        return c
+
+    cpdef ModuleElement _neg_(self):
+        cdef MyGFp2Element c = self._new_c()
+        neg_GF(&c._rep, self._rep)
+        return c
+
+    cpdef RingElement _mul_(self, RingElement other):
+        cdef MyGFp2Element c = self._new_c()
+        mul_GF(&c._rep, self._rep, (<MyGFp2Element>other)._rep)
+        return c
+
+    cpdef RingElement square(self):
+        cdef MyGFp2Element c = self._new_c()
+        sqr_GF(&c._rep, self._rep)
+        return c
+    
+    def __invert__(MyGFp2Element self):
+        cdef MyGFp2Element c = self._new_c()
+        if not inv_GF(&c._rep, self._rep):
+            raise ZeroDivisionError
+        return c
+
+    cpdef RingElement _div_(self, RingElement other):
+        cdef MyGFp2Element c = self._new_c()
+        if not div_GF(&c._rep, self._rep, (<MyGFp2Element>other)._rep):
+            raise ZeroDivisionError
+        return c
+
+    cpdef MyGFp2Element horner(self, poly):
+        """
+        A polynomial evaluation at self, implemented by a Horner
+        scheme.  The polynomial is given as the list of its
+        coefficients.
+        """
+        cdef MyGFp2Element c = self._new_c()
+        cdef MyGFp2Element d = self._new_c()
+        for coeff in reversed(poly):
+            c *= self
+            c += coeff
+        return c
+    
+    def __richcmp__(self, right, int op):
+        return (<Element>self)._richcmp(right, op)
+
+    cdef int _cmp_c_impl(self, Element other):
+        # Careful: -2 is treated as an exception value upstream
+        # so we scale down to -1, 0, 1
+        cdef int c = cmp_GF(self._rep, (<MyGFp2Element>other)._rep)
+        if c < 0:
+            return -1
+        elif c > 0:
+            return 1
+        else:
+            return 0
+
+    cpdef polynomial(self, name=None):
+        # allocating some strings large enough to hold the result
+        sa = '0x' + self._parent.characteristic().str(16)
+        sb = '0x' + self._parent.characteristic().str(16)
+        get_GF(sa, sb, self._rep)
+        a = self._parent.base()(sa)
+        b = self._parent.base()(sb)
+
+        P = self._parent.polynomial_ring(name)
+        return a*P.gen() + b
+    
+    def __hash__(self):
+        sa = '0x' + self._parent.characteristic().str(16)
+        sb = '0x' + self._parent.characteristic().str(16)
+        get_GF(sa, sb, self._rep)
+        return hash(sa + sb)
+    
+    cpdef _repr_(self):
+        return repr(self.polynomial())
+    
+    cpdef _latex_(self):
+        return latex(self.polynomial())
+
+    def __dealloc__(self):
+        clear_GF(&self._rep)
+
+    # Interaction with pari (for factorization, etc.)
+    def _finite_field_ext_pari_element(self, k=None):
+        K = self._parent._finite_field_ext_pari_()
+        if k is not None and k is not K:
+            raise TypeError, "Pari finite field not isomorphic to parent"
+        
+        g = K.gen()
+        p = self.polynomial()
+        return p[1]*g + p[0]
+
+    def _pari_(self, var=None):
+        return pari(self._pari_init_(var))
+
+    # very slow methods, fortunately they are not critical
+    def is_square(self):
+        p = self._parent.characteristic()
+        return self.is_zero() or ((self ** (p-1)) ** ((p+1)/2) == 1)
+    
+    def sqrt(self, all=False, extend=False):
+        if extend:
+            raise NotImplementedError
+        
+        P = PolynomialRing(self._parent, 'X')
+        roots = (P.gen()**2 - self).roots()
+        if roots:
+            if all:
+                return [r[0] for r in roots]
+            else:
+                return roots[0][0]
+        else:
+            raise ValueError, "must be a perfect square"
+
+
+
+#############################################################################
+#   Montgomery curves                                                       #
+#############################################################################
+
+# Some forward declarations
+cdef class MontgomeryPoint
+cdef class MontgomeryIsogeny
+cdef class MontgomeryThreeIsogeny
+cdef class MontgomeryIsomorphism
+cdef class MontgomeryTwoIsogeny
+cdef class MontgomeryFourIsogeny
+
+cdef class MontgomeryCurve(SageObject):
+    """
+    This class represents a Motgomery curve.
+    """
+    # EC parameters
+    cdef readonly MyGFp2 base_field
+    cdef readonly MyGFp2Element A, B
+    # private constant needed for arithmetic
+    cdef MyGFp2Element A24
+
+    def __init__(self, MyGFp2Element A, MyGFp2Element B):
+        self.A = A
+        self.B = B
+        self.A24 = (A+2)/4
+        self.base_field = A._parent
+
+    def __repr__(self):
+        return "(%s) y^2 = x^3 + (%s)*x^2 + x" % (self.B, self.A)
+
+    def __contains__(self, MontgomeryPoint P):
+        if P.y is None:
+            return is_square((P.x**3 + self.A*P.x**2*P.z + P.x*P.z**2) * (self.B*P.z))
+        else:
+            return (P.x**3 + self.A*P.x**2*P.z + P.x*P.z**2 - self.B*P.y.square()*P.z).is_zero()
+
+    cpdef MyGFp2Element j_invariant(self):
+        return 256*(self.A.square() - 3)**3/(self.A.square() - 4)
+
+    cpdef quadratic_twist(self, c=None):
+        if c is None:
+            c = self.base_field.one()
+            while c.is_square():
+                c = self.base_field.random_element()
+        return MontgomeryCurve(self.A, self.B*c)
+
+    def WeierstrassModel(self):
+        cdef MyGFp2Element iB = ~self.B
+        return EllipticCurve([0, self.A*iB, 0, iB.square(), 0])
+
+    def order(self):
+        return self.WeierstrassModel().order()
+
+    cpdef MontgomeryPoint zero(self):
+        return MontgomeryPoint(self, self.base_field.zero(), self.base_field.zero(), self.base_field.one())
+
+    cpdef MontgomeryPoint random_point(self):
+        cdef MontgomeryPoint P
+        P = MontgomeryPoint(self,
+                            self.base_field.one(),
+                            self.base_field.random_element())
+        while P not in self:
+            P = MontgomeryPoint(self,
+                                self.base_field.one(),
+                                self.base_field.random_element())
+        return P
+
+    @cython.profile(True)
+    cpdef MontgomeryIsogeny isogeny(self, points):
+        """
+        Compute the isogeny with kernel given by the list of points
+        (in Montgomery XZ coordinates).
+        """
+        cdef MontgomeryPoint P 
+        cdef MyGFp2Element p1, p2, pinv, t, a2
+        cdef MontgomeryIsogeny isogeny
+
+        h = [self.base_field.one()]
+        # Kernel polynomial (handwritten polynomial multiplication !!!)
+        for P in points:
+            P = P.scale()
+            
+            for i in reversed(range(len(h))):
+                h[i] = -P.x*h[i]
+                if i > 0:
+                    h[i] += h[i-1]
+            h.append(self.base_field.one())
+
+        # Power sums
+        p1 = -h[-2]
+        pinv = -h[1] / h[0]
+
+        a2 = self.A + 6*(pinv - p1)
+
+        isogeny = PY_NEW(MontgomeryIsogeny)
+        isogeny.domain = self
+        isogeny.kernel = h
+        isogeny.pinv = pinv
+        isogeny.coB = self.base_field.one()
+        
+        P = MontgomeryPoint(self, self.base_field.one(), self.base_field.one())
+        P = isogeny.apply(P)
+        
+        isogeny.coB = P.z / P.x
+        isogeny.codomain = MontgomeryCurve(a2*isogeny.coB, self.B*isogeny.coB)
+        # Sanity check:
+        #p2 = p1.square()
+        #if len(h) > 2:
+        #    p2 -= 2*h[-3]
+        #t = 6*p2 + 4*p1*self.A + 2*(len(h)-1)
+        #a4 = 1 - 5*t + 4*self.A*(pinv - p1) + 12*(pinv-p1).square()
+        #assert(a4 * isogeny.coB.square() == 1)
+
+        return isogeny
+
+    @cython.profile(True)
+    cpdef MontgomeryThreeIsogeny three_isogeny(self, MontgomeryPoint P):
+        """
+        Compute the 3-isogeny with kernel {P, -P, 0}.
+        (P needs only to be in Montgomery XZ coordinates).
+        """
+        cdef MontgomeryThreeIsogeny isogeny
+        
+        isogeny = PY_NEW(MontgomeryThreeIsogeny)
+        isogeny.domain = self
+        isogeny.p = P.x / P.z
+        isogeny.p2 = isogeny.p.square()
+        isogeny.codomain = MontgomeryCurve(((-6*isogeny.p + self.A)*isogeny.p + 6)*isogeny.p,
+                                           self.B*isogeny.p2)
+        return isogeny
+
+    @cython.profile(True)
+    cpdef MontgomeryIsomorphism isomorphism(self, MontgomeryPoint four_P):
+        """
+        Compute the change of variables so that the point 2*four_P
+        goes in (0,0) and four_P goes in (1,...). four_P must be a
+        four-torsion point.
+        """
+        cdef MontgomeryIsomorphism isomorphism
+        cdef MyGFp2Element iB, AiB, P2x, iP4x, a2
+
+        P2x = (four_P.to_Kummer()*2).scale().x
+        a2 = 3*P2x + self.A
+
+        iP4x = four_P.z / (four_P.x - four_P.z*P2x)
+
+        isomorphism = PY_NEW(MontgomeryIsomorphism)
+        isomorphism.domain = self
+        isomorphism.codomain = MontgomeryCurve(a2*iP4x, self.B*iP4x)
+        isomorphism.r = -P2x
+        isomorphism.u = iP4x
+        
+        # Sanity checks
+        #a4 = (a2 + self.A)*P2x + 1
+        #assert(P2x**3 + self.A*P2x.square() + P2x == 0)
+        #assert(a4 * iP4x.square() == 1)
+
+        return isomorphism
+
+
+    @cython.profile(True)
+    cpdef MontgomeryTwoIsogeny two_isogeny(self, MontgomeryPoint eight_P):
+        """
+        Compute the 2-isogeny defined by the kernel point (0,0).
+        eight_P must be an eight-torsion point such that 2*eight_P =
+        (1,...).
+        """
+        cdef MontgomeryTwoIsogeny isogeny
+        isogeny = PY_NEW(MontgomeryTwoIsogeny)
+        isogeny.domain = self
+        isogeny.iA2 = eight_P.x * eight_P.z / (eight_P.x - eight_P.z).square()
+        isogeny.codomain = MontgomeryCurve((self.A + 6)*isogeny.iA2, self.B*isogeny.iA2)
+
+        # Sanity check
+        #assert(4*(2 + self.A)*isogeny.iA2.square() == 1)
+
+        return isogeny
+        
+    @cython.profile(True)
+    cpdef MontgomeryFourIsogeny four_isogeny(self):
+        """
+        Computes the four isogeny defined by the kernel point (1,...)
+        and its generated group.
+        """
+        cdef MontgomeryFourIsogeny isogeny
+        cdef MyGFp2Element i2mA
+
+        i2mA = ~(2 - self.A)
+
+        isogeny = PY_NEW(MontgomeryFourIsogeny)
+        isogeny.domain = self
+        isogeny.Ap2 = self.A + 2
+        isogeny.codomain = MontgomeryCurve(-2*(self.A+6)*i2mA, self.B*i2mA)
+        
+        return isogeny
+
+
+cpdef MontgomeryCurve MontgomeryCurve_from_j(MyGFp2Element j):
+    """
+    Create, if it exists, a Montgomery curve with given j-invariant.
+    """
+    cdef MyGFp2Element A
+    
+    P = PolynomialRing(j.parent(), 'X')
+    roots = (256*(P.gen() - 3)**3 - j*P.gen() + 4*j).roots()
+    if roots:
+        try:
+            A = roots[0][0].sqrt()
+        except ValueError:
+            pass
+        else:
+            return MontgomeryCurve(A, A.parent().one())
+
+    raise ValueError, "No Montgomery curve with this j-invariant."
+
+    
+cdef class MontgomeryPoint(SageObject):
+    """
+    A point of a Montgomery curve. Either in Montgomery XZ
+    coordinates, or in projective XYZ coordinates (the choice of
+    coordinates is handled mostly transparently to the user).
+
+    Operations are faster in Montgomery than in projective
+    coordinates.
+
+    To create a point in Montgomery coordinates:
+
+    >>> MontgomeryPoint(curve, x, z)
+
+    To create ap point in projective coordinates (notice the inversion
+    of Y and Z!):
+
+    >>> MontgomeryPoint(curve, x, z, y)
+    """
+    cdef readonly MyGFp2Element x, z
+    cdef readonly y
+    cdef readonly MontgomeryCurve curve
+
+    def __init__(self, MontgomeryCurve E, MyGFp2Element x, MyGFp2Element z, y=None):
+        self.curve = E
+        self.x = x
+        self.z = z
+        self.y = y
+
+    cpdef MontgomeryPoint scale(self):
+        "Scale this point to have Z coordinate equal to 1."
+        cdef MyGFp2Element iz
+        if self.z.is_zero():
+            return MontgomeryPoint(self.curve, self.x.parent().zero(), self.z, self.x.parent().one())
+        else:
+            iz = ~self.z
+            if self.y is None:
+                return MontgomeryPoint(self.curve, self.x * iz, self.x.parent().one())
+            else:
+                return MontgomeryPoint(self.curve, self.x * iz, self.x.parent().one(), self.y * iz)
+
+    cpdef MontgomeryPoint lift(self):
+        """
+        If this point is in projective coordinates, do nothing.
+        Otherwise, lift it (arbitrarily) to a point on the curve in
+        projective coordinates.
+        """
+        cdef MyGFp2Element y
+        if self not in self.curve:
+            raise ValueError, "Point not on curve."
+        if self.y is not None:
+            return self
+        elif self.z.is_zero():
+            return self.curve.zero()
+        else:
+            y = ((self.x**3 + self.curve.A*self.x**2*self.z + self.x*self.z**2) / (self.curve.B*self.z)).sqrt()
+            return MontgomeryPoint(self.curve, self.x, self.z, y)
+
+    cpdef MontgomeryPoint to_Kummer(self):
+        """
+        Project this point to the Kummer line (i.e. forget its Y
+        coordinate).
+        """
+        if self.y is None:
+            return self
+        else:
+            return MontgomeryPoint(self.curve, self.x, self.z)
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint doubling(self):
+        "Double this point. Only Montgomery coordinates."
+        cdef MyGFp2Element a, b, c
+
+        a = (self.x + self.z).square()
+        b = (self.x - self.z).square()
+        c = a - b
+        return MontgomeryPoint(self.curve,
+                               a*b,
+                               c*(b + self.curve.A24*c))
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint dadd(self, MontgomeryPoint P, MontgomeryPoint diff):
+        "Perform a differential addition. Only Montgomery coordinates."
+        cdef MyGFp2Element da, cb
+
+        da = (self.x + self.z)*(P.x - P.z)
+        cb = (self.x - self.z)*(P.x + P.z)
+        return MontgomeryPoint(self.curve,
+                               diff.z*(da + cb).square(),
+                               diff.x*(da - cb).square())
+    
+    @cython.profile(True)
+    cpdef ladder(self, MontgomeryPoint P, MontgomeryPoint diff):
+        "Perform one step of Montgomery ladder. Only Montgomery coordinates."
+        cdef MyGFp2Element x1 = P.x._new_c()
+        cdef MyGFp2Element z1 = P.x._new_c()
+        cdef MyGFp2Element x2 = P.x._new_c()
+        cdef MyGFp2Element z2 = P.x._new_c()
+        cdef MontgomeryPoint P1, P2
+
+        mont_ladder(&x1._rep, &z1._rep, &x2._rep, &z2._rep,
+                     self.x._rep, self.z._rep, P.x._rep, P.z._rep,
+                     diff.x._rep, diff.z._rep, self.curve.A24._rep)
+
+        P1 = MontgomeryPoint(self.curve, x1, z1)
+        P2 = MontgomeryPoint(self.curve, x2, z2)
+        return P1, P2
+        
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint scalar(self, n):
+        "Multiply this point by n. Only Montgomery coordinates."
+        cdef MontgomeryPoint P1, P2
+
+        n = abs(n)
+
+        if self.z.is_zero():
+            return self
+        if n == 0:
+            return self.curve.zero()
+        elif n == 1:
+            return self
+        elif n == 2:
+            return self.doubling()
+        elif n == 3:
+            P1 = self.doubling()
+            return self.dadd(P1, self)
+        elif n == 5:
+            P1 = self.doubling()
+            P2 = self.dadd(P1, self)
+            return P1.dadd(P2, self)
+        else:
+            mask = 1
+            m = n >> 1
+            while m > 0:
+                m >>= 1
+                mask <<= 1
+
+            mask >>= 1
+            P1 = self
+            P2 = self.doubling()
+            while mask > 0:
+                if n & mask:
+                    P2, P1 = P2.ladder(P1, self)
+                else:
+                    P1, P2 = P1.ladder(P2, self)
+                mask >>= 1
+
+            return P1
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint complete_add(self, MontgomeryPoint P):
+        """
+        Add this point with P.  Only projective coordinates.
+        """
+        cdef MyGFp2Element y1z2, x1z2, z1z2, u, uu, v, vv, vvv, R, A
+
+        if self.y is None or P.y is None:
+            raise ValueError, "Cannot add points on the Kummer line."
+
+        y1z2 = self.y*P.z
+        x1z2 = self.x*P.z
+        z1z2 = self.z*P.z
+        u = P.y*self.z - y1z2
+        uu = u.square()
+        v = P.x*self.z - x1z2
+        vv = v.square()
+        vvv = v*vv
+        R = vv*x1z2
+        A = (self.curve.B*uu - self.curve.A*vv)*z1z2 - vvv - 2*R
+
+        return MontgomeryPoint(self.curve,
+                               v*A,
+                               vvv*z1z2,
+                               u*(R-A) - vvv*y1z2)
+
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint complete_double(self):
+        """
+        Double this point.  Only projective coordinates.
+        """
+        cdef MyGFp2Element xx, zz, w, yb, s, ss, sss, R, B, h
+
+        if self.y is None:
+            raise ValueError, "Lift the point first"
+        
+        xx = self.x.square()
+        zz = self.z.square()
+        w = 3*xx + 2*self.curve.A*self.x*self.z + zz
+        yb = self.curve.B * self.y
+        s = 2 * yb * self.z
+        ss = s.square()
+        sss = ss*s
+        R = yb*s
+        B = 2*self.x*R
+        h = self.curve.B*w.square() - self.curve.A*ss - 2*B
+
+        return MontgomeryPoint(self.curve,
+                               h*s,
+                               sss,
+                               w*(B - h) - 2*ss*yb*self.y)
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint complete_mul(self, n):
+        "Multiply this point by n. Only projective coordinates."
+        cdef MontgomeryPoint pow2a, sum
+
+        pow2a = self
+        while n & 1 == 0:
+            pow2a += pow2a
+            n = n >> 1
+        sum = pow2a
+        n = n >> 1
+        while n != 0:
+            pow2a += pow2a
+            if n & 1:
+                sum += pow2a
+            n = n >> 1
+        return sum
+
+    # All the operations below work both for Montgomery and projective
+    # coordinates.
+    def __add__(self, MontgomeryPoint P):
+        if self.is_zero():
+            return P
+        elif P.is_zero():
+            return self
+        elif (self.x*P.z == P.x*self.z):
+            if (self.y*P.z == P.y*self.z):
+                return self.complete_double()
+            else:
+                return self.curve.zero()
+        else:
+            return self.complete_add(P)
+
+    def __sub__(self, MontgomeryPoint P):
+        return self + (-P)
+
+    def __neg__(self):
+        if self.y is None:
+            return self
+        else:
+            return MontgomeryPoint(self.curve, self.x, self.z, -self.y)
+
+    def __mul__(self, n):
+        if self.y is None:
+            return self.scalar(n)
+        else:
+            if n < 0:
+                return (-self)*(-n)
+            if n == 0:
+                return self.curve.zero()
+            else:
+                return self.complete_mul(n)
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint mul_and_add(self, MontgomeryPoint other, m, n):
+        """
+        Computes self * m + other * n. Only in projective coordinates.
+        Internally uses Edwards' coordinates.
+        """
+        cdef MyGFp2Element tmp, a, d, Px, Py, Qx, Qy, PQx, PQy
+        cdef MyGFp2Element B, C, D, E, F, G, H, J, Rx, Ry, Rz
+
+        tmp = ~self.curve.B
+        a = (self.curve.A + 2)*tmp
+        d = (self.curve.A - 2)*tmp
+        
+        tmp = ~(self.y*(self.x+self.z))
+        Px, Py = self.x*(self.x+self.z)*tmp, self.y*(self.x-self.z)*tmp
+        tmp = ~(other.y*(other.x+other.z))
+        Qx, Qy = other.x*(other.x+other.z)*tmp, other.y*(other.x-other.z)*tmp
+        
+        C = Px*Qx
+        D = Py*Qy
+        E = d*C*D
+        tmp = ~(1-E.square())
+        PQx, PQy = (1-E)*((Px+Py)*(Qx+Qy) - C - D)*tmp, (1+E)*(D - a*C)*tmp
+
+        mask = 1
+        mm = m >> 1
+        nn = n >> 1
+        while mm > 0 or nn > 0:
+            mm >>= 1
+            nn >>= 1
+            mask <<= 1
+        
+        cdef MyGFp2 K = Px.parent()
+        Rx, Ry, Rz = K.zero(), K.one(), K.one()
+        while mask > 0:
+            # double
+            B = (Rx+Ry).square()
+            C = Rx.square()
+            D = Ry.square()
+            E = a*C
+            F = E+D
+            H = Rz.square()
+            J = F - 2*H
+            Rx = (B-C-D)*J
+            Ry = F*(E-D)
+            Rz = F*J
+
+            # add
+            r = (m & mask) | ((n & mask) << 1)
+            if r:
+                if r == mask:
+                    C, D, H, = Rx*Px, Ry*Py, Px+Py
+                elif r == (mask << 1):
+                    C, D, H, = Rx*Qx, Ry*Qy, Qx+Qy
+                else:
+                    C, D, H, = Rx*PQx, Ry*PQy, PQx+PQy
+                B = Rz.square()
+                E = d*C*D
+                F = B-E
+                G = B+E
+                Rx = Rz*F*((Rx+Ry)*H - C - D)
+                Ry = Rz*G*(D - a*C)
+                Rz = F*G
+
+            mask >>= 1
+
+        return MontgomeryPoint(self.curve, (Rz+Ry)*Rx, (Rz-Ry)*Rx, (Rz+Ry)*Rz)
+
+            
+    cpdef is_zero(self):
+        return self.z.is_zero()
+
+    def weil_pairing(self, P, order):
+        if self.y is None or P.y is None:
+            raise ValueError, "The sign of the Weil pairing is undetermined on the Kummer line."
+        E = self.curve.WeierstrassModel()
+        P1 = self.scale()
+        P2 = P.scale()
+        P1 = E.point((P1.x/self.curve.B, P1.y/self.curve.B))
+        P2 = E.point((P2.x/self.curve.B, P2.y/self.curve.B))
+        return P1.weil_pairing(P2, order)
+    
+    def __repr__(self):
+        if self.y is None:
+            return "(%s : %s)" % (self.x, self.z)
+        else:
+            return "(%s : %s : %s)" % (self.x, self.y, self.z)
+
+
+cdef class MontgomeryIsogeny(object):
+    """
+    An isogeny of odd degree of Montgomery curves.
+    """
+    cdef readonly MontgomeryCurve domain, codomain
+    cdef kernel
+    cdef MyGFp2Element pinv, coB
+    
+    def __init__(self):
+        raise NotImplementedError, "Use MontgomeryCurve.isogeny instead."
+
+    def __repr__(self):
+        return (("Degree %s isogeny\n" + " "*4 + "from:  %s\n" + " "*4 + "to:    %s") %
+                (self.degree(), self.domain, self.codomain))
+
+    cpdef degree(self):
+        return 2*len(self.kernel)-1
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint apply(self, MontgomeryPoint P):
+        "Evaluation at point P."
+        cdef MyGFp2Element x, y, z, Px2, h, h1, h2, h3, hsq, h1s1, h1ih1, f, f1,
+
+        assert(P.curve is self.domain)
+        P = P.scale()
+        Px2 = P.x.square()
+        h = P.x.horner(self.kernel)
+        if h.is_zero():
+            return self.codomain.zero()
+        hsq = h.square()
+        h1 = P.x.horner([i*c for (i, c) in enumerate(self.kernel)][1:])
+        h1sq = h1.square()
+        h2 = P.x.horner([i*(i-1)*c for (i, c) in enumerate(self.kernel)][2:])
+        f = Px2*P.x + self.domain.A * Px2 + P.x
+        f1 = 3*Px2 + 2*self.domain.A * P.x + 1
+        h1ih1 = h2*h - h1sq
+        x = (self.degree()*P.x - 2*self.pinv)*hsq - 2*f1*h1*h - 4*f*h1ih1
+        x *= self.coB
+        
+        if P.y is not None:
+            x *= h
+            h3 = P.x.horner([i*(i-1)*(i-2)*c for (i, c) in enumerate(self.kernel)][3:])
+            y = ((self.degree()*h - 4*f*h3 - 2*(6*P.x + 2*self.domain.A)*h1)*hsq +
+                  (-6*f1*h1ih1 + 12*f*h1*h2)*h - 8*f*h1sq*h1)
+            y *= P.y * self.coB
+            z = hsq*h
+        else:
+            y = None
+            z = hsq
+
+        return  MontgomeryPoint(self.codomain, x, z, y)
+        
+cdef class MontgomeryThreeIsogeny(object):
+    """
+    A 3-isogeny of Montgomery curves.
+    """
+    cdef readonly MontgomeryCurve domain, codomain
+    cdef MyGFp2Element p, p2
+    
+    def __init__(self):
+        raise NotImplementedError, "Use MontgomeryCurve.three_isogeny instead."
+
+    def __repr__(self):
+        return (("Degree %s isogeny\n" + " "*4 + "from:  %s\n" + " "*4 + "to:    %s") %
+                (self.degree(), self.domain, self.codomain))
+
+    cpdef degree(self):
+        return 3
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint apply(self, MontgomeryPoint P):
+        "Evaluation at point P."
+        cdef MyGFp2Element x, y, z, h, rh
+
+        assert(P.curve is self.domain)
+        
+        h = P.x - P.z * self.p
+        if h.is_zero():
+            return self.codomain.zero()
+        rh = P.x * self.p - P.z
+        x = P.x * rh.square()
+
+        if P.y is not None:
+            x *= h
+            y = P.y * (rh * (rh*h + 2*P.x*P.z*(1-self.p2)))
+            z = h.square() * h * P.z
+        else:
+            y = None
+            z = h.square() * P.z
+
+        return  MontgomeryPoint(self.codomain, x, z, y)
+
+cdef class MontgomeryIsomorphism(object):
+    """
+    An isomorphism of Montgomery curves.
+    """
+    cdef readonly MontgomeryCurve domain, codomain
+    cdef MyGFp2Element u, r
+
+    def __init__(self):
+        raise NotImplementedError, "Use MontgomeryCurve.two_isogeny instead."
+
+    def __repr__(self):
+        return (("Isomorphism\n" + " "*4 + "from:  %s\n" + " "*4 + "to:    %s") %
+                (self.domain, self.codomain))
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint apply(self, MontgomeryPoint P):
+        "Evaluation at point P."
+        cdef MyGFp2Element x, y, z
+
+        x = (P.x + self.r * P.z) * self.u
+        if P.y is not None:
+            y = P.y * self.u
+        else:
+            y = None
+
+        return MontgomeryPoint(self.codomain, x, P.z, y)
+
+
+cdef class MontgomeryTwoIsogeny(object):
+    """
+    A 2-isogeny of Montgomery curves.
+    """
+    cdef readonly MontgomeryCurve domain, codomain
+    cdef MyGFp2Element iA2
+
+    def __init__(self):
+        raise NotImplementedError, "Use MontgomeryCurve.two_isogeny instead."
+
+    def __repr__(self):
+        return (("Degree 2 isogeny\n" + " "*4 + "from:  %s\n" + " "*4 + "to:    %s") %
+                (self.domain, self.codomain))
+
+    cpdef degree(self):
+        return 2
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint apply(self, MontgomeryPoint P):
+        "Evaluation at point P."
+        cdef MyGFp2Element x, Px2, y, z
+
+        x = self.iA2 * (P.x - P.z).square()
+
+        if P.y is not None:
+            x *= P.x
+            Px2 = P.x.square()
+            y = self.iA2 * P.y * (Px2 - P.z.square())
+            z = P.z * Px2
+        else:
+            y = None
+            z = (P.z * P.x)
+    
+        return  MontgomeryPoint(self.codomain, x, z, y)
+
+
+cdef class MontgomeryFourIsogeny(object):
+    """
+    A 4-isogeny of Montgomery curves.
+    """
+    cdef readonly MontgomeryCurve domain, codomain
+    cdef MyGFp2Element Ap2
+
+    def __init__(self):
+        raise NotImplementedError, "Use MontgomeryCurve.four_isogeny instead."
+
+    def __repr__(self):
+        return (("Degree 4 isogeny\n" + " "*4 + "from:  %s\n" + " "*4 + "to:    %s") %
+                (self.domain, self.codomain))
+
+    cpdef degree(self):
+        return 4
+
+    @cython.profile(True)
+    cpdef MontgomeryPoint apply(self, MontgomeryPoint P):
+        "Evaluation at point P."
+        cdef MyGFp2Element x, y, z, x1, z1, zA2, fourz, B
+
+        z1 = P.x * P.z
+        x1 = (P.x - P.z).square()
+        zA2 = z1 * self.Ap2
+        fourz = 4*z1
+        x = (x1 + zA2) * (x1 + fourz)
+
+        if P.y is not None:
+            B = P.x * x1
+            x *= B
+            y = P.y * (x1 + 2*(z1 - P.z.square())) * (x1.square() - zA2*fourz)
+            z = P.z * B.square() * (4 - self.Ap2)
+        else:
+            y = None
+            z = x1 * (fourz - zA2)
+
+        return  MontgomeryPoint(self.codomain, x, z, y)
+
+
+#############################################################################
+#   Diffie-Hellman-like key exchange using supersingular curves             #
+#############################################################################
+
+@cython.profile(True)
+cpdef keygen(MontgomeryPoint P, MontgomeryPoint Q, m, n, int ell, strategy,
+           Pother=None, Qother=None, checks=True):
+    """
+    Diffie-Hellman-like key exchange. Parameters are as follows:
+    
+    - P, Q: generators of the torsion subgroup.
+    - m, n: secret key.
+    - ell: prime factor of the torsion subgroup. 
+    - Pother, Qother: points to push through the isogeny.
+    - checks: perform some sanity checks.
+    """
+    cdef MontgomeryPoint R, tmp
+    cdef MontgomeryFourIsogeny phi4
+    cdef MontgomeryIsomorphism iso
+    cdef MontgomeryCurve E
+    cdef int h, split, i
+    cdef bint first = True
+
+    sig_on()
+    R = P.mul_and_add(Q, m, n).to_Kummer()
+    
+    h = len(strategy) - 1
+    branchings = [(R, h)]
+    while(branchings):
+        # Take the top of the queue
+        tmp, h = branchings[-1]
+        # If it is not a point on the ground,
+        # descend to the floor
+        split = strategy[h][1]
+        while(h > 1):
+            for i in range(h-split):
+                tmp = tmp.scalar(ell)
+            branchings.append((tmp, split))
+            h = split
+            split = strategy[h][1]
+        # For ell=2, at the first iteration, we must bring the 2-torsion point in (0,0)
+        if ell == 2 and first:
+            first = False
+            tmp, h = branchings[-1]
+            iso = tmp.curve.isomorphism(tmp.doubling())
+            branchings = [(iso.apply(P), h) for (P,h) in branchings]
+            if Pother is not None:
+                Pother = iso.apply(Pother)
+                if checks: assert(Pother in iso.codomain)
+            if Qother is not None:
+                Qother = iso.apply(Qother)
+                if checks: assert(Qother in iso.codomain)
+        # now go one step (isogeny) to rhe right
+        tmp, h = branchings.pop()
+        if checks:
+            assert(h == 1)
+            if ell == 2:
+                assert(not (tmp*4).is_zero() and (tmp*8).is_zero())
+            else:
+                assert(not tmp.is_zero() and (tmp*ell).is_zero())
+        if ell == 2:
+            phi = tmp.curve.two_isogeny(tmp)
+        elif ell == 3:
+            phi = tmp.curve.three_isogeny(tmp)
+        else:
+            phi = tmp.curve.isogeny([tmp*i for i in range(1,(ell-1)/2+1)])
+        # push all the branching points one step to the right
+        branchings = [(phi.apply(P), h-1) for (P,h) in branchings]
+        # also push the generators, if necessary
+        if Pother:
+            Pother = phi.apply(Pother)
+            if checks: assert(Pother in phi.codomain)
+        if Qother:
+            Qother = phi.apply(Qother)
+            if checks: assert(Qother in phi.codomain)
+
+    E = phi.codomain
+
+    # For ell=2, there are still two steps to go
+    if ell == 2:
+        phi4 = E.four_isogeny()
+        if Pother is not None:
+            Pother = phi4.apply(Pother)
+            if checks: assert(Pother in phi4.codomain)
+        if Qother is not None:
+            Qother = phi4.apply(Qother)
+            if checks: assert(Qother in phi4.codomain)
+        E = phi4.codomain
+        
+    sig_off()
+    return E, Pother, Qother    
+
+
+@cython.profile(True)
+cpdef keygen_c(MontgomeryPoint P, MontgomeryPoint Q, m, n, int ell, strategy,
+               Pother=None, Qother=None, checks=True):
+    """
+    Diffie-Hellman-like key exchange. C implementation.
+
+    Parameters as in `keygen`. Only works for ell=2,3.
+    """
+    cdef MyGFp2Element Rx, Rz, tmp
+    cdef GF *Px, *Py, *Pz, *Qx, *Qy, *Qz
+    cdef Integer M, N
+    cdef MontgomeryCurve E
+    cdef MontgomeryPoint QP
+    cdef int *strat
+
+    if ell != 2 and ell != 3:
+        raise ValueError("""C implementation only works for ell=2,3.
+  Edit pqcrypto11.sage changing the calls to keygen_c into calls to keygen.
+  (and cross fingers... it hasn't been tested much recently)""")
+
+    sig_on()
+    M = Integer(m)
+    N = Integer(n)
+    Rx = P.x._new_c()
+    Rz = P.x._new_c()
+    tmp = P.x._new_c()
+
+    if m == 1:
+        QP = Q - P
+        mont_3ladder(&Rx._rep, &Rz._rep, <__mpz_struct*>N.value,
+                      P.x._rep, P.z._rep, Q.x._rep, Q.z._rep,
+                      QP.x._rep, QP.z._rep, P.curve.A24._rep)
+    elif n == 1:
+        QP = P - Q
+        mont_3ladder(&Rx._rep, &Rz._rep, <__mpz_struct*>M.value,
+                      Q.x._rep, Q.z._rep, P.x._rep, P.z._rep,
+                      QP.x._rep, QP.z._rep, P.curve.A24._rep)
+    else:
+        shamir(&Rx._rep, &tmp._rep, &Rz._rep,
+                P.curve.A._rep, P.curve.B._rep,
+                P.x._rep, (<MyGFp2Element>P.y)._rep, P.z._rep,
+                Q.x._rep, (<MyGFp2Element>Q.y)._rep, Q.z._rep,
+                <__mpz_struct*>M.value, <__mpz_struct*>N.value)
+    
+    strat = <int*>malloc(len(strategy) * sizeof(int))
+    for i in range(len(strategy)):
+        strat[i] = strategy[i][1]
+
+    E = MontgomeryCurve(P.curve.A.copy(), P.curve.B.copy())
+    if Pother:
+        Pother = MontgomeryPoint(E, Pother.x.copy(),
+                                 Pother.z.copy(), Pother.y.copy())
+        Px = &(<MyGFp2Element>Pother.x)._rep
+        Py = &(<MyGFp2Element>Pother.y)._rep
+        Pz = &(<MyGFp2Element>Pother.z)._rep
+    else:
+        Px = Py = Pz = NULL
+    if Qother:
+        Qother = MontgomeryPoint(E, Qother.x.copy(),
+                                 Qother.z.copy(), Qother.y.copy())
+        Qx = &(<MyGFp2Element>Qother.x)._rep
+        Qy = &(<MyGFp2Element>Qother.y)._rep
+        Qz = &(<MyGFp2Element>Qother.z)._rep
+    else:
+        Qx = Qy = Qz = NULL
+
+    push_through_iso(&E.A._rep, &E.B._rep, &E.A24._rep,
+                      Rx._rep, Rz._rep,
+                      ell, strat, len(strategy) - 1,
+                      Px, Py, Pz, Qx, Qy, Qz)
+
+    sig_off()
+    return E, Pother, Qother
+
+
+
+@cython.profile(True)
+cpdef scramble2(MontgomeryCurve E, cofactor, P=None, Q=None, checks=True):
+    """
+    This function hides the last 2 bits leaked by the encryption when ell=2.
+
+    It is not used in the final version.
+    """
+    cpdef MontgomeryPoint R, tmp1, tmp2
+
+    R = E.zero()
+    while (R.doubling().is_zero()):
+        R = E.random_point() * cofactor
+        tmp1 = R.doubling()
+        tmp2 = tmp1.doubling()
+        while not tmp2.is_zero():
+            R = tmp1
+            tmp1 = tmp2
+            tmp2 = tmp1.doubling()
+            
+        iso = E.isomorphism(R)
+        E = iso.codomain
+
+        if P is not None:
+            P = iso.apply(P)
+            if checks: assert(P in iso.codomain)
+        if Q is not None:
+            Q = iso.apply(Q)
+            if checks: assert(Q in iso.codomain)
+
+    return E, P, Q

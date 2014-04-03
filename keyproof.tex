@@ -1,10 +1,3 @@
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\appendix
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Proof of Theorem~\ref{thm:kep-proof}}\label{sec:kep-proof}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 We recall the definition of session-key security in the
 authenticated-links adversarial model of Canetti and
 Krawczyk~\cite{canetti}. We consider a finite set of \emph{parties}
@@ -20,7 +13,7 @@ the creation of protocol sessions, which take place within each party.
 Two sessions $s$ and $s'$ are \emph{matching} if the outgoing messages
 of one are the incoming messages of the other, and vice versa.
 
-We allow the adversary access to the queries
+We allow the adversary black-box access to the queries
 $\mathsf{SessionStateReveal}$, $\mathsf{SessionKeyReveal}$, and
 $\mathsf{Corrupt}$. The $\mathsf{SessionStateReveal}(\mathfrak{s})$
 query allows the adversary to obtain the contents of the session
@@ -80,9 +73,9 @@ upper bound on the number of sessions activated by $\mathcal{I}$ in any
 interaction.
 \STATE Invoke $\mathcal{I}$ and simulate the protocol to $\mathcal{I}$, except for the
 $r$-th activated protocol session.
-\STATE For the $r$-th session, let Alice send $A, i, E_A, \phi_A(P_B),
-\phi_A(Q_B)$ to Bob, and let Bob send $B, i, E_B, \phi_B(P_A),
-\phi_B(Q_A)$ to Alice, where $i$ is the session identifier.
+\STATE For the $r$-th session, let Alice send $A$, $i$, $E_A$, $\phi_A(P_B)$,
+$\phi_A(Q_B)$ to Bob, and let Bob send $B$, $i$, $E_B$, $\phi_B(P_A)$,
+$\phi_B(Q_A)$ to Alice, where $i$ is the session identifier.
 \IF{the $r$-th session is chosen by $\mathcal{I}$ as the test session}
 \STATE Provide $\mathcal{I}$ as the answer to the test query.
 \STATE $d \leftarrow \mathcal{I}$'s output.
@@ -94,15 +87,8 @@ $r$-th activated protocol session.
 \end{algorithmic}
 \end{algorithm}
 
-\begin{theorem}
-Under the SSDDH assumption, the key-agreement protocol of
-Section~\ref{subsec:kep} is session-key secure in the
-authenticated-links adversarial model of Canetti and
-Krawczyk~\cite{canetti}.
-\end{theorem}
-
-\begin{proof}
-The proof is based on the proof given by Canetti and Krawczyk~\cite[\S
+\begin{proof}[Proof of Theorem~\ref{thm:kep-proof}]
+We adapt the proof given by Canetti and Krawczyk~\cite[\S
   5.1]{canetti} for two-party Diffie-Hellman over $\ZZ_q^*$. A similar
 strategy was used by Stolbunov~\cite{stolbunov-red} in the case of
 ordinary elliptic curves.
