@@ -1,0 +1,1138 @@
+\documentclass[envcountsect,envcountsame,runningheads]{llncs}   % [twoside]
+%\usepackage{fancyheadings,amsmath,amssymb,amsfonts,color,tikz,pgflibraryplotmarks,verbatim}
+\usepackage{amsmath,amssymb,amsfonts,color,verbatim,tikz,pgflibraryplotmarks,url}
+\usepackage[full-version]{optional}
+\opt{full-version}{
+\usepackage[letterpaper,hmargin=1in,vmargin=1.25in]{geometry}
+}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\def\aa//{{\raise0.5pt\hbox{\tt/\kern-1.5pt/}}}
+
+\newtheorem{prop}[theorem]{Proposition}
+
+\newcommand{\QQ}{{\mathbb{Q}}}
+\newcommand{\ZZ}{{\mathbb{Z}}}
+\newcommand{\RR}{{\mathbb{R}}}
+\newcommand{\CC}{{\mathbb{C}}}
+\newcommand{\FF}{{\mathbb{F}}}
+\newcommand{\OO}{{\mathcal{O}}}
+\newcommand{\VV}{{\mathcal{V}}}
+\newcommand{\EE}{{\mathcal{E}}}
+\newcommand{\iso}{\cong}
+\newcommand{\id}{\operatorname{sID}}
+\newcommand{\cyc}[1]{{\langle #1 \rangle}}
+
+\newcommand{\fixme}[1]{{\color{blue} \sf $\clubsuit\clubsuit\clubsuit$ FIXME: [#1]}}
+
+%\newtheorem{problem}[theorem]{Problem}
+
+\title{Towards quantum-resistant cryptosystems
+from supersingular elliptic curve isogenies}
+\titlerunning{Towards quantum-resistant cryptosystems from isogenies}
+\author{David Jao\inst{1} \and Luca De Feo\inst{2}}
+\institute{
+Department of Combinatorics and Optimization \\
+University of Waterloo, Waterloo, Ontario, N2L 3G1, Canada\\
+\email{djao@math.uwaterloo.ca}\\[\baselineskip]
+\and
+Laboratoire PRiSM\\
+Universit\'e de Versailles, 78035 Versailles, France\\
+\email{http://www.prism.uvsq.fr/\homedir dfl}
+}
+
+\begin{document}
+
+\maketitle 
+ 
+\begin{abstract}
+We present new candidates for quantum-resistant public-key
+cryptosystems based on the conjectured difficulty of finding isogenies
+between supersingular elliptic curves.  The main technical idea in our
+scheme is that we transmit the images of torsion bases under the isogeny
+in order to allow the two parties to arrive at a common shared key
+despite the noncommutativity of the endomorphism ring.  Our work is
+motivated by the recent development of a subexponential-time quantum
+algorithm for constructing isogenies between ordinary elliptic curves.
+In the supersingular case, by contrast, the fastest known quantum attack
+remains exponential, since the noncommutativity of the endomorphism ring
+means that the approach used in the ordinary case does not apply. We
+give a precise formulation of the necessary computational assumption
+along with a discussion of its validity\opt{full-version}{, and prove the
+security of our
+protocols under this assumption}. In addition, we present implementation
+results showing that our protocols are multiple orders of magnitude faster
+than previous isogeny-based cryptosystems over ordinary curves.
+
+\ 
+
+\textbf{Keywords:} elliptic curves, isogenies, quantum-resistant public-key cryptosystems
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+The Diffie-Hellman scheme is a fundamental protocol for public-key
+exchange between two parties. Its original definition over finite
+fields is based on the hardness of computing the map $g,g^a,g^b
+\mapsto g^{ab}$ for $g \in \FF_p^*$, while its elliptic curve analogue
+depends on the difficulty of computing $P,aP,bP \mapsto abP$ for
+points $P$ on an elliptic curve. Recently, Stolbunov~\cite{Stol}
+proposed a Diffie-Hellman type system based on the difficulty of
+computing isogenies between ordinary elliptic curves, with the stated
+aim of obtaining quantum-resistant cryptographic protocols.  The
+fastest known (classical) probabilistic algorithm for solving this
+problem is the algorithm of Galbraith and Stolbunov~\cite{gs}, based
+on the algorithm of Galbraith, Hess, and Smart~\cite{GHS}. This
+algorithm is exponential, with a worst-case running time of
+$O(\sqrt[4]{q})$. However, on a quantum computer, recent work of
+Childs et al.~\cite{CJS} has shown that the private keys in Stolbunov's
+system can be recovered in subexponential time. Moreover, even if
+we only consider classical attacks in assessing security levels, Stolbunov's
+scheme requires 229 seconds (even with precomputation) to perform a
+single key exchange operation at the 128-bit security level on a
+desktop PC~\cite[Table 1]{Stol}.
+
+In this work we present isogeny-based cryptosystems that address both
+the performance and security drawbacks of Stolbunov's system. Our
+scheme achieves performance on the order of one second
+(cf. Section~\ref{sec:imp}) at the 128-bit security level (as measured
+against the fastest known quantum attacks) using
+desktop PCs, making it far faster than Stolbunov's scheme. In terms of
+security, our scheme is not vulnerable to the algorithm of Childs et
+al.~\cite{CJS}, nor to any algorithm of this type, since it is not
+based on a group action. The fastest known attacks against our scheme,
+even on quantum computers, require fully exponential time. Our scheme
+involves a new computational assumption upon which its quantum resistance
+is based, and like all new computational assumptions,
+further study and the passage of time is needed for
+validation. Nevertheless, we believe our proposal represents
+a promising candidate for quantum-resistant isogeny-based public-key
+cryptography.
+
+Our proposal uses isogenies between \emph{supersingular} elliptic
+curves rather than ordinary elliptic curves. The main technical
+difficulty is that, in the supersingular case, the endomorphism ring
+is noncommutative, whereas Diffie-Hellman type protocols require
+commutativity. We show how to overcome this obstacle by providing the
+outputs of the isogeny on certain points as auxiliary input to the
+protocol. To the best of our knowledge, nothing
+similar to this idea has ever previously appeared in the
+literature. Providing this auxiliary input does not seem to
+make the problem of finding isogenies any easier; see
+Section~\ref{subsec:hardness} for a full discussion. The multiple
+orders of magnitude of performance gains in our scheme arise from the
+fact that supersingular isogeny graphs are much faster to navigate
+than ordinary graphs. In Section~\ref{subsec:proof} we provide formal
+statements of the hardness assumptions and security reductions for our
+system. Finally, in Section~\ref{sec:imp} we present implementation
+results confirming the correctness and performance of our protocol.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Isogenies}\label{isogenies}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Let $E_1$ and $E_2$ be elliptic curves defined over a finite field
+$\FF_q$.
+An isogeny $\phi: E_1 \rightarrow E_2$ defined over $\FF_q$ is a
+non-constant rational map defined over $\FF_q$ which is also a group
+homomorphism from $E_1(\FF_q)$ to $E_2(\FF_q)$ \cite[III.4]{Sil}. The
+degree of an isogeny is its degree as a rational map.  For separable
+isogenies, to have degree $\ell$ means to have kernel of size $\ell$.
+Every isogeny of degree greater than 1 can be factored into a
+composition of isogenies of prime degree over $\bar{\FF}_q$
+\cite{Couv}.
+
+An endomorphism of an elliptic curve $E$ defined over $\FF_q$ is an
+isogeny $E \rightarrow E$ defined over $\FF_{q^m}$ for some $m$. The
+set of endomorphisms of $E$ together with the zero map forms a ring
+under the operations of pointwise addition and composition; this ring
+is called the endomorphism ring of $E$ and denoted End($E$). The ring
+End($E$) is isomorphic either to an order in a quaternion algebra or
+to an order in an imaginary quadratic field \cite[V.3.1]{Sil}; in the
+first case we say $E$ is supersingular and in the second case we say
+$E$ is ordinary.
+
+Two elliptic curves $E_1$ and $E_2$ defined over $\FF_q$ are said to
+be isogenous over $\FF_q$ if there exists an isogeny $\phi\colon E_1
+\to E_2$ defined over $\FF_q$. A theorem of Tate states that
+two curves $E_1$ and $E_2$ are isogenous over $\FF_q$ if and only if
+$\#E_1(\FF_q) = \#E_2(\FF_q)$ \cite[$\S$3]{Tate}. Since every isogeny
+has a dual isogeny \cite[III.6.1]{Sil}, the property of being
+isogenous over $\FF_q$ is an equivalence relation on the finite set of
+$\bar{\FF}_q$-isomorphism classes of elliptic curves defined over
+$\FF_q$.  Accordingly, we define an isogeny class to be an equivalence
+class of elliptic curves, taken up to $\bar{\FF}_q$-isomorphism, under
+this equivalence relation.
+
+The $\ell$-torsion group of $E$, denoted $E[\ell]$, is the set of all
+points $P \in E(\bar{\FF}_q)$ such that $\ell P$ is the identity. For
+$\ell$ such that $p\nmid \ell$, we have $E[\ell] \cong \ZZ/\ell\ZZ \oplus
+\ZZ/\ell\ZZ.$
+
+Curves in the same isogeny class are either all supersingular or all
+ordinary. Traditionally, most elliptic curve cryptography uses
+ordinary curves; however, for this work we will be interested in
+supersingular curves. We assume for the remainder of this paper that
+we are in the supersingular case.
+
+Supersingular curves are all defined over $\FF_{p^2}$, and for every
+prime $\ell \nmid p$, there exist $\ell+1$ isogenies (counting
+multiplicities) of degree $\ell$ originating from any given such
+supersingular curve.
+Given an elliptic curve $E$ and a finite subgroup $\Phi$ of $E$, there
+is up to isomorphism a unique isogeny $E \to E'$ having kernel
+$\Phi$~\cite[III.4.12]{Sil}. Hence we can identify an isogeny by
+specifying its kernel, and conversely given a kernel subgroup the
+corresponding isogeny can be computed using V\'elu's
+formulas~\cite{Velu}. Typically, this correspondence is of little use,
+since the kernel, or any representation thereof, is usually as
+unwieldy as the isogeny itself. However, in the special case of
+kernels generated by $\FF_{p^2}$-rational points of smooth order,
+specifying a generator of the kernel allows for compact representation
+and efficient computation of the corresponding isogeny, as we
+demonstrate below.
+
+\opt{full-version}{
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ramanujan graphs}\label{ram_graph} 
+
+Let $G = (\mathcal{V},\EE)$ be a finite graph on $h$ vertices $\VV$
+with undirected edges $\EE$.  Suppose $G$ is a regular graph of degree
+$k$, i.e., exactly $k$ edges meet at each vertex. Given a
+labeling of the vertices $\VV = \{v_1,\ldots , v_h\}$, the adjacency
+matrix of $G$ is the symmetric $h\times h$ matrix $A$ whose $ij$-th
+entry $A_{i,j} = 1$ if an edge exists between $v_i$ and $v_j$ and 0
+otherwise.
+
+It is convenient to identify functions on $\VV$ with vectors in
+$\RR^h$ via this labeling, and therefore also think of $A$ as a
+self-adjoint operator on $L^2(\VV)$.  All of the eigenvalues of $A$
+satisfy the bound $|\lambda| \leq k$. Constant vectors are
+eigenfunctions of $A$ with eigenvalue $k$, which for obvious reasons
+is called the trivial eigenvalue $\lambda_{\operatorname{triv}}$. A
+family of such graphs $G$ with $h \rightarrow \infty$ is said to be a
+sequence of {\it expander graphs} if all other eigenvalues of their
+adjacency matrices are bounded away from
+$\lambda_{\operatorname{triv}}= k$ by a fixed
+amount.\footnote{Expansion is usually phrased in terms of the number
+  of neighbors of subsets of $G$, but the spectral condition here is
+  equivalent for $k$-regular graphs and also more useful for our
+  purposes.}  In particular, no other eigenvalue is equal to $k$; this
+implies the graph is connected.  A Ramanujan graph is a special type
+of expander which has $|\lambda| \leq 2\sqrt{k-1}$ for any nontrivial
+eigenvalue which is not equal to $-k$ (this last possibility happens
+if and only if the graph is bipartite). The Ramanujan property was
+first defined in \cite{LubPS}. It characterizes the optimal separation
+between the two largest eigenvalues of the graph adjacency matrix, and
+implies the expansion property.
+
+A fundamental use of expanders is to prove the rapid mixing of the
+random walk on $\VV$ along the edges $\EE$. The following rapid mixing
+result is standard but we present it below for completeness. For the
+proof, see~\cite{JMV} or \cite{DSV,Lub,Sarnak}.
+
+\begin{prop}\label{prop:mixing} Let $G$ be a regular graph of degree
+  $k$ on $h$ vertices. Suppose that the eigenvalue $\lambda$ of any
+  nonconstant eigenvector satisfies the bound $|\lambda| \leq c$ for
+  some $c < k$. Let $S$ be any subset of the vertices of $G$, and $x$
+  be any vertex in $G$. Then a random walk of length at least
+  $\frac{\log 2h/|S|^{1/2}}{\log k/c}$ starting from $x$ will land in
+  $S$ with probability at least $\frac{|S|}{2h} = \frac{|S|}{2|G|}$.
+\end{prop}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Isogeny graphs}\label{isog_graph} 
+
+An isogeny graph is a graph whose nodes consist of all elliptic curves
+in $\FF_q$ belonging to a fixed isogeny class, up to
+$\bar{\FF}_q$-isomorphism (so that two elliptic curves which are
+isomorphic over $\bar{\FF}_q$ represent the same node in the
+graph). In practice, the nodes are represented using $j$-invariants,
+which are invariant up to isomorphism. 
+Isogeny graphs for supersingular elliptic curves were first considered
+by Mestre \cite{Mestre}, and were shown by Pizer \cite{pizer1,pizer2}
+to have the Ramanujan property.
+
+Every supersingular elliptic curve in characteristic $p$ is defined
+over either $\FF_p$ or $\FF_{p^2}$ \cite{Sil}, so it suffices to fix
+$\FF_q = \FF_{p^2}$ as the field of definition for this
+discussion. Thus, in contrast to ordinary curves, there are a finite
+number of isomorphism classes of curves in any given isogeny class;
+this number is in fact the genus $g$ of the modular curve $X_0(p)$,
+which is roughly $\frac{p+1}{12}$. It turns out that all supersingular
+curves defined over $\FF_{p^2}$ belong to the same isogeny
+class~\cite{Mestre}. For a fixed prime value of $\ell \neq p$, we
+define the vertices of the supersingular isogeny graph $\mathcal{G}$
+to consist of these $g$ isomorphism classes of curves, with
+edges given by isomorphism classes of degree-$\ell$ isogenies,
+defined as follows: two isogenies $\phi_1, \phi_2 \colon E_i \to E_j$
+are isomorphic if there exists an automorphism $\alpha \in
+\text{Aut}(E_j)$ (i.e., an invertible endomorphism) such that $\phi_2
+= \alpha\phi_1$. Pizer~\cite{pizer1,pizer2} has shown that
+$\mathcal{G}$ is a connected $k = \ell + 1$-regular multigraph
+satisfying the Ramanujan bound of $|\lambda| \leq 2\sqrt{\ell} =
+2\sqrt{k - 1}$ for the nontrivial eigenvalues of its adjacency matrix.
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Public-key cryptosystems based on supersingular curves}\label{sec:kep}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+In this section we present a key-exchange protocol and a public-key
+cryptosystem analogous to those of \cite{R&S,Stol}, using
+supersingular elliptic curves.  Since the discrete logarithm problem
+is unimportant when elliptic curves are used in an isogeny-based
+system, we propose using supersingular curves of smooth order to
+improve performance. In the supersingular setting, it is easy to
+construct curves of smooth order, and using a smooth order curve will
+give a large number of isogenies that are fast to
+compute. Specifically, we fix $\FF_q = \FF_{p^2}$ as the field of
+definition, where $p$ is a prime of the form $\ell_A^{e_A}
+\ell_B^{e_B}\cdot f \pm 1$.  Here $\ell_A$ and $\ell_B$ are small
+primes, and $f$ is a cofactor such that $p$ is prime. Alice and Bob
+will each take a random walk on a different isogeny graph; Alice will
+use the graph consisting of isogenies of degrees $\ell_A$, and Bob
+will use the graph of degree $\ell_B$ isogenies. The main technical
+modification is that, since ideal classes no longer commute (or indeed
+even multiply together) in the supersingular case, extra information
+must be communicated as part of the protocol in order to ensure that
+both parties arrive at the same common value. This is in contrast to
+the ordinary case~\cite{Stol}, where the existence of an abelian class
+group allows for the straightforward creation of a Diffie-Hellman type
+system.
+
+\begin{figure}[t]
+\begin{center} 
+\begin{tabular}{l c l}
+\cline{1-1} \cline{3-3} 
+$\mathcal{A}$ & & $\mathcal{B}$ \\ 
+\cline{1-1} \cline{3-3} 
+\textbf{Input:} $A,B,\id$ & & \textbf{Input:} $B$ \\
+$m_A,n_A \in_{R} \ZZ/\ell_A^{e_A}\ZZ$ & & $m_B,n_B \in_{R} \ZZ/\ell_B^{e_B}\ZZ$ \\
+$\phi_A := E_0/\cyc{[m_A]P_A+[n_A]Q_A }$ & & $\phi_B :=
+E_0/\cyc{[m_B]P_B+[n_B]Q_B} $ \\ 
+ & $\xrightarrow[]{\substack{A, \id \\ \phi_A(P_B),\\ \phi_A(Q_B),\\ E_A}} $ &  \\
+  & $\xleftarrow[]{\substack{B, \id \\ \phi_B(P_A),\\ \phi_B(Q_A),\\ E_B}} $ &  \\
+$E_{AB} := $ &  & $ E_{BA} := $ \\
+$E_B/\scriptstyle{\cyc{[m_A]\phi_B(P_A)+[n_A]\phi_B(Q_A)}} $ &  & $
+E_A/\scriptstyle{\cyc{[m_B]\phi_A(P_B)+[n_B]\phi_A(Q_B)}}$ \\
+\textbf{Output:} $j(E_{AB}), \id$ & & \textbf{Output:} $j(E_{BA}), \id$
+
+\end{tabular}
+\end{center}
+
+\begin{center}
+\begin{tikzpicture}
+\node (1) at (-5cm,0cm){$E_0$};
+
+\node (2) at (0cm,2cm){$E_A$};
+\draw [color = red, ->] (1) -- (2);
+\path (1) -- (2) node [above,sloped,pos=0.5]{$\scriptscriptstyle ker(\phi_A)=\cyc{[m_A]P_A+[n_A]Q_A}$};
+\path (1) -- (2) node [below,sloped,pos=0.5]{$\scriptscriptstyle\phi_A(P_B),\phi_A(Q_B)$};
+
+\node (3) at (0cm,-2cm){$E_B$};
+\draw [color = blue, ->] (1) -- (3);
+\path (1) -- (3) node [below,sloped,pos=0.5]{$\scriptscriptstyle ker(\phi_B)=\cyc{[m_B]P_B+[n_B]Q_B}$};
+\path (1) -- (3) node [above,sloped,pos=0.5]{$\scriptscriptstyle\phi_B(P_A),\phi_B(Q_A)$};
+
+\node (2a) at (0cm,1.9cm){};
+\node (2b) at (-.1cm,1.9cm){};
+
+\node (3a) at (.1cm,-1.9cm){};
+\node (3b) at (0cm,-1.9cm){};
+
+\draw [color = red, dashed, ->] (2a) -- (3a);
+\draw [color = blue, dashed, <-] (2b) -- (3b);
+
+\node (4) at (5cm,-.4cm){$E_{AB}$};
+\draw [color = red, ->] (3) -- (4);
+\path (3) -- (4) node [below,sloped,pos=0.5]{$\scriptscriptstyle ker(\phi_A')=\cyc{[m_A]\phi_B(P_A)+[n_A]\phi_B(Q_A)}$};
+
+\node (5) at (5cm,.4cm){$E_{BA}$};
+\draw [color = blue, ->] (2) -- (5);
+\path (2) -- (5) node [above,sloped,pos=0.5]{$\scriptscriptstyle ker(\phi_B')=\cyc{[m_B]\phi_A(P_B)+[n_B]\phi_A(Q_B)}$};
+
+\node (6) at (5cm,0cm){$\|$};
+
+\end{tikzpicture}
+\end{center}
+\caption{Key-exchange protocol using isogenies on supersingular
+  curves.}
+\label{fig:kep}
+\end{figure}
+
+\subsection{Key exchange}\label{subsec:kep}
+
+We fix as public parameters a supersingular curve $E_0$ defined over
+$\FF_{p^2}$, and bases $\{P_{A},Q_{A}\}$ and $\{P_{B},Q_{B}\}$ which
+generate $E_0[\ell_A^{e_A}]$ and $E_0[\ell_B^{e_B}]$ respectively, so
+that $\cyc{P_{A}, Q_{A}} = E_0[\ell_A^{e_A}]$ and $\cyc{P_{B}, Q_{B}}
+= E_0[\ell_B^{e_B}]$.  Alice chooses two random elements $m_A,n_A
+\in_R \ZZ/\ell_A^{e_A}\ZZ$, not both divisible by $\ell_A$, and computes
+an isogeny $\phi_A\colon E_0 \to E_A$ with kernel $K_A :=
+\cyc{[m_A]P_A+[n_A]Q_A}$. Alice also computes the image
+$\{\phi_A(P_B), \phi_A(Q_B)\} \subset E_A$ of the basis
+$\{P_{B},Q_{B}\}$ for $E_0[\ell_B^{e_B}]$ under her secret isogeny
+$\phi_A$, and sends these points to Bob together with
+$E_A$. Similarly, Bob selects random elements $m_B,n_B \in_R
+\ZZ/\ell_B^{e_B}\ZZ$ and computes an isogeny $\phi_B\colon E_0 \to E_B$
+having kernel $K_B := \cyc{[m_B]P_B+[n_B]Q_B}$, along with the points
+$\{\phi_B(P_A), \phi_B(Q_A)\}$. Upon receipt of $E_B$
+and $\phi_B(P_A),\phi_B(Q_A) \in E_B$ from Bob, Alice computes an
+isogeny $\phi_A' \colon E_B \to E_{AB}$ having kernel equal to
+$\cyc{[m_A]\phi_B(P_A)+[n_A]\phi_B(Q_A)}$; Bob proceeds \emph{mutatis
+mutandis}.  Alice and Bob can then use the common $j$-invariant of
+\[ E_{AB} = \phi_B'(\phi_A(E_0))=  \phi_A'(\phi_B(E_0)) =
+E_0/\scriptstyle{\cyc{[m_A]P_A+[n_A]Q_A ,[m_B]P_B+[n_B]Q_B }} \]
+to form a secret shared key. For specific details of how each of the
+above computations can be performed efficiently, we refer the reader
+to Section~\ref{sec:alg}.
+
+The full protocol is given in Figure~\ref{fig:kep}. We denote by $A$
+and $B$ the identifiers of Alice and Bob, and use $\id$ to denote the
+unique session identifier.
+
+\subsection{Public-key encryption}\label{subsec:pk}
+
+The key-exchange protocol of Section~\ref{subsec:kep} can easily be
+adapted to yield a public-key cryptosystem, in much the same way that
+Elgamal encryption follows from Diffie-Hellman. We briefly give the
+details here. All notation is the same as above. Stolbunov~\cite{Stol}
+uses a similar construction, upon which ours is based.
+
+\begin{description}
+\item[Setup:] Choose $p = \ell_A^{e_A} \ell_B^{e_B} \cdot f \pm 1$,
+  $E_0$, $\{P_A,Q_A\}$, $\{P_B,Q_B\}$ as above. Let $\mathcal{H} =
+  \{H_k: k \in K\}$ be a hash function family indexed by a finite set
+  $K$, where each $H_k$ is a function from $\FF_{p^2}$ to the message
+  space $\{0,1\}^w$.
+\item[Key generation.] Choose two random elements $m_A,n_A \in_R
+\ZZ/\ell_A^{e_A}\ZZ$, not both divisible by $\ell_A$. Compute $E_A,
+\phi_A(P_B), \phi_A(Q_B)$ as above, and choose a random element $k
+\in_R K$. The public key is the tuple $(E_A, \phi_A(P_B), \phi_A(Q_B), k)$ and
+the private key is $(m_A,n_A,k)$.
+\item[Encryption.] Given a public key $(E_A, \phi_A(P_B), \phi_A(Q_B),
+  k)$ and a message $m \in \{0,1\}^w$, choose two random elements
+  $m_B,n_B \in_R \ZZ/\ell_B^{e_B}\ZZ$, not both divisible by $\ell_B$,
+  and compute
+\begin{align*}
+h &= H_k(j(E_{AB})), \\
+c &= h \oplus m.
+\end{align*}
+The ciphertext is $(E_B, \phi_B(P_A), \phi_B(Q_A), c)$.
+\item[Decryption.] Given a ciphertext $(E_B, \phi_B(P_A), \phi_B(Q_A),
+  c)$ and a private key $(m_A,n_A,k)$, compute the $j$-invariant
+  $j(E_{AB})$ and set
+\begin{align*}
+h &= H_k(j(E_{AB})), \\
+m &= h \oplus c.
+\end{align*}
+The plaintext is $m$.
+\end{description}
+
+\section{Algorithmic aspects}\label{sec:alg}
+
+We now give specific algorithms to implement the abovementioned steps
+efficiently. 
+
+\subsection{Parameter generation}\label{subsec:parameter}
+
+For any fixed choice of $\ell_A^{e_A}$ and $\ell_B^{e_B}$, one can
+easily test random values of $f$ (of any desired cryptographic size)
+until a value is found for which $p=\ell_A^{e_A} \ell_B^{e_B}\cdot f -
+1$ or $p=\ell_A^{e_A} \ell_B^{e_B}\cdot f + 1$ is prime; the prime
+number theorem in arithmetic progressions (specifically, the effective
+version of Lagarias and Odlyzko~\cite{lo}) provides a sufficient lower
+bound for the density of such primes. 
+
+Once the prime $p= \ell_A^{e_A} \ell_B^{e_B}\cdot f \pm 1$ is known,
+Br\"oker~\cite{broker-ss} has shown that it is easy to find a
+supersingular curve $E$ over $\FF_{p^2}$ having cardinality $(p\mp
+1)^2 = (\ell_A^{e_A} \ell_B^{e_B}\cdot f)^2$. Starting from $E$, one
+can select a random supersingular curve $E_0$ over $\FF_{p^2}$ by
+means of random walks on the isogeny graph\opt{full-version}{
+(cf. Proposition~\ref{prop:mixing})};
+alternatively, one can simply take $E_0 = E$. In either case, $E_0$
+has group structure $(\ZZ/(p\mp 1)\ZZ)^2$. To find a basis for
+$E_0[\ell_A^{e_A}]$, choose a random point $P \in_R E_0(\FF_{p^2})$
+and multiply it by $(\ell_B^{e_B}\cdot f)^2$ to obtain a point $P'$ of
+order dividing $\ell_A^{e_A}$. With high probability, $P'$ will have
+order exactly $\ell_A^{e_A}$; one can of course check this by
+multiplying $P'$ by powers of $\ell_A$. If the check succeeds, then
+set $P_A = P'$; otherwise try again with another $P$. A second point
+$Q_A$ of order $\ell_A^{e_A}$ can be obtained in the same way.  To
+check whether $Q_A$ is independent of $P_A$, simply compute the Weil
+pairing $e(P_A,Q_A)$ in $E[\ell_A^{e_A}]$ and check that the result
+has order $\ell_A^{e_A}$; as before, this happens with high
+probability, and if not, just choose another point $Q_A$. Note that
+the choice of basis has no effect on the security of the scheme, since
+one can convert from one basis to another using extended discrete
+logarithms, which are easy to compute in $E_0[\ell_A^{e_A}]$
+by~\cite{teske-ph}.
+
+\subsection{Key exchange}\label{subsec:kea}
+
+It remains to describe how Alice and Bob can compute isogenies of a
+given kernel.  We show how to compute
+$\phi_A\colon E_0 \to E_A$ where $E_A = E_0/\cyc{[m_A]P_A +
+  [n_A]Q_A}$; the same procedure suffices to compute all the other
+isogenies mentioned. The computation is performed using a version of
+Hensel lifting modulo $\ell_A$. Let $R_0 := [m_A]P_A + [n_A]Q_A$. 
+The order of $R_0$ is $\ell_A^{e_A}$. For $0\le i <e_A$, let
+\begin{equation*}
+  E_{i+1} = E_i/\cyc{\ell_A^{e_A-i-1}R_i},\qquad
+  \phi_i : E_i \to E_{i+1},\qquad
+  R_{i+1} = \phi_i(R_i),
+\end{equation*}
+where $\phi_i$ is a degree $\ell_A$ isogeny from $E_i$ to $E_{i+1}$.
+Then $E_A = E_{e_A}$ and
+$\phi_A=\phi_{e_A-1}\circ\cdots\circ\phi_0$.
+
+Figure~\ref{fig:kea} gives two algorithms for this task. They both
+compute iteratively $(R_i,\ell_A^{e_A-i-1}R_i,\phi_i,E_{i+1})$ for
+$i<e_A$, but they differ in the strategy. The first one, which we will
+refer to as \emph{multiplication-oriented}, computes at each iteration
+$\ell_A^{e_A-i-1}R_i$ from $R_i$ using point addition (or duplication,
+or triplication). The second one, which we call
+\emph{isogeny-oriented}, first forms the list $(\ell_A^jR_0)_{j<e_A}$
+using point addition, then at each iteration computes the list
+$(\ell_A^jR_{i+1})_{j<e_A-i-1}$ by evaluating $\phi_i(\ell_A^jR_i)$
+for each $j$. Observe that Alice and Bob can use one algorithm or the
+other independently.
+
+\begin{figure}[t]
+  \centering
+
+  \begin{minipage}[t]{0.47\linewidth}
+    \textbf{Multiplication based}
+    \hrule\smallskip
+    \begin{algorithmic}[1]
+      \REQUIRE $E_0, R_0$
+      \FOR{$0\le i<e_A$}
+      \STATE\label{alg:mul:mul} $P_i \leftarrow \ell_A^{e_a-i-1}R_0$;
+      \STATE\label{alg:mul:velu} Compute $\phi_i : E_i \to E_i/\cyc{P_i}$;
+      \STATE $E_{i+1} \leftarrow E_i/\cyc{P_i}$;
+      \STATE\label{alg:mul:eval} $R_{i+1} \leftarrow \phi_i(R_i)$;
+      \ENDFOR
+      \ENSURE $E_{e_A}$
+    \end{algorithmic}
+  \end{minipage}
+  %%
+  \hfill
+  %%
+  \begin{minipage}[t]{0.47\linewidth}
+    \textbf{Isogeny based}
+    \hrule\smallskip
+    \begin{algorithmic}[1]
+      \REQUIRE $E_0, R_0$
+      \STATE $Q_0 \leftarrow R_0$;
+      \FOR{$0\le j<e_A-1$}
+      \STATE $Q_{j+1} \leftarrow \ell_AQ_j$;
+      \ENDFOR
+      \FOR{$0\le i<e_A$}
+      \STATE Compute $\phi_i : E_i \to E_i/\cyc{Q_{e_A-1}}$;
+      \STATE $E_{i+1} \leftarrow E_i/\cyc{Q_{e_A-1}}$;
+      \FOR{$i\le j < e_A-1$}\label{alg:iso:eval}
+      \STATE $Q_{j+1} \leftarrow \phi_i(Q_j)$;
+      \ENDFOR
+      \ENDFOR
+      \ENSURE $E_{e_A}$
+    \end{algorithmic}
+  \end{minipage}
+  
+  \caption{Key exchange algorithms.}
+  \label{fig:kea}
+\end{figure}
+
+A quick analysis shows that both algorithms require $O(\log^2 p)$
+operations in $\FF_p$. The major cost in the multiplication-based one
+is scalar point multiplication; this costs $O(e_A\log_2\ell_A)$
+double-and-adds at each iteration and is repeated
+$e_A\sim\log_{\ell_A}\sqrt{p}$ times. The major cost in the
+isogeny-based algorithm is the isogeny evaluation at
+step~\ref{alg:iso:eval}; each evaluation costs $O(\ell_A)$ operations
+and there are $\frac{1}{2}e_A(e_A-1)$ of them. By forming the ratio of
+these quantities, we obtain $O(\log_2\ell_A/\ell_A)$, so we see that
+the multiplication-based algorithm is preferable as $\ell_A$
+grows---but we cannot grow $\ell_A$ indefinitely, because eventually
+Step~\ref{alg:mul:velu} becomes the dominant cost. Our implementation,
+described in Section~\ref{sec:imp}, supports the isogeny-oriented
+approach for $\ell_A = 2,3$ and the multiplication-oriented approach
+for $\ell_A > 2$.
+
+\subsection{Isogenies of Montgomery curves}\label{subsec:montgomery}
+
+Independently of which method is chosen, it is important to use pick
+models for elliptic curves that offer the fastest isogeny evaluation
+performance. The literature on efficient formulas for evaluating small
+degree isogenies is much less extensive than for point
+multiplication. In this section we provide explicit and efficient
+formulas for evaluating isogenies using curves in Montgomery form.
+
+Each of
+our curves has group structure $\left(\ZZ/(p\mp 1)\ZZ\right)^2$ and
+its twist has group structure $\left(\ZZ/(p\pm 1)\ZZ\right)^2$. Hence either
+the curve or its twist has a point of order~$4$. Consequently, we can write
+our curves in Montgomery form as follows:
+\begin{equation}
+  \label{eq:montgomery}
+  E\;:\;B^2y^2 = x^3 + Ax^2 + x
+\end{equation}
+Montgomery curves have very efficient arithmetic on their Kummer line
+(i.e.\ by representing points by the coordinates $(X:Z)$ where
+$x=X/Z$)~\cite{montgomery}. The Kummer line identifies $P$ with $-P$,
+and thus it is not possible to add two distinct points; however it is
+still possible to compute any scalar multiple of a point.  Also
+observe that since $P$ and $-P$ generate the same subgroup, isogenies
+can be defined and evaluated correctly on the Kummer line.  The goal
+of this section is to give explicit and efficient formulas for such
+isogenies.
+
+Let $E$ be the Montgomery curve defined by Eq.~\eqref{eq:montgomery}.
+It has a point of order two in point $P_2=(0,0)$, and a point of order
+four in $P_4=(1,\sqrt{(A+2)/B})$---eventualy defined over a quadratic
+extension---such that $[2]P_4=P_2$. Montgomery curves have twists of
+the form $\tilde{y}=\sqrt{c}y$; these are isomorphisms when $c$ is
+a square. The change of coordinates $\tilde{x}=x/B, \tilde{y}=y/B$
+brings the curve $E$ to the Weierstrass form
+\begin{equation*}
+  \tilde{E}\;:\;\tilde{y}^2 = \tilde{x}^3 + \frac{A}{B}\tilde{x}^2 + \frac{1}{B^2}\tilde{x},
+\end{equation*}
+and the point $P_4$ to $P_4'=(1/B,\ldots)$. Inversely, given a
+Weierstrass curve $\tilde{E}$ with equation
+$\tilde{y}^2=\tilde{x}^3+a\tilde{x}^2+b\tilde{x}$, together with a
+point $P_4=(1/\beta,\ldots)$---with its ordinate possibly lying in a
+quadratic extension---such that $[2]P_4=(0,0)$, the change of
+variables $\tilde{x}=x/\beta, \tilde{y}=y/\beta$ brings $\tilde{E}$ to
+the Montgomery form $\beta y^2=x^3+a\beta x^2 + x$.
+
+Let $G$ be a subgroup of the Montgomery curve $E$ of odd cardinality
+$\ell$ and let $h$ be the degree $(\ell-1)/2$ polynomial vanishing on
+the abscissas of $G$. With a twist $y=\tilde{y}/\sqrt{B}$, we can put
+$E$ in the form $\tilde{y}^2 = \tilde{x}^3 + A\tilde{x}^2 +
+\tilde{x}$, and this doesn't change the abscissas of $G$ or the
+polynomial $h$. Now we can use V\'elu's formulas to compute an isogeny
+having $G$ for kernel: this gives an isogeny $\phi$ and a curve $F$
+such that
+\begin{align*}
+  &F\;:\; y^2 = x^3 + a_2x^2 + a_4x + a_6,\\
+  &\begin{aligned}
+    \phi : E &\to F,\\
+    (x,y) &\mapsto \left(\frac{g(x)}{h(x)^2}, y\sqrt{B}\left(\frac{g(x)}{h(x)^2}\right)'\right).
+  \end{aligned}
+\end{align*}
+Because $\ell$ is odd, the point $(0,0)$ of $E$ is sent to a point of
+order two in $F$. A closer look at V\'elu's formulas (see
+Eq.~\eqref{eq:bmss} below) shows that $\phi(0,0) = (p_{-1} - p_1, 0)$,
+where $p_1$ is the sum of the abscissas of $G$ and $p_{-1}$ is the sum
+of their inverses. By the change of variables
+$\tilde{x}=x-p_{-1}+p_1$, we bring $F$ to the form
+$\tilde{F}:\tilde{y}^2=\tilde{x}^3+a\tilde{x}^2+b\tilde{x}$. Now
+$\phi(P_4)$ is a point of order four (possibly in a quadratic
+extension). Its abscissa in $\tilde{F}$ is rational and is given by
+$1/\beta=g(1)/h(1)-p_{-1}+p_1$, so we apply the change of variables
+$\tilde{x}=\bar{x}/\beta,\tilde{y}=\bar{x}/\beta$ to obtain a
+Montgomery curve. Finally, we have to twist back the image curve to
+obtain a curve isogenous over the base field: the twist $\bar{y} =
+y\sqrt{B}$ cancels with the first one and leaves us with
+square-root-free formulas. The image curve is
+\begin{equation}
+  \label{eq:montgomery-image}
+  B\beta y^2 = x^3 + a\beta x^2 + x.
+\end{equation}
+
+To efficiently evaluate these isogenies (either on the full curve or
+on the Kummer line) we use~\cite[Proposition~4.1]{Bostan}, which says:
+\begin{equation}
+  \label{eq:bmss}
+  \frac{g}{h} = \ell x + p_1 - 2(3x^2+2Ax+1)\frac{h'}{h} - 4(x^3+Ax^2+x)\left(\frac{h'}{h}\right).
+\end{equation}
+To evaluate at a point $(x_0,y_0)$, we compute $h(x_0), h'(x_0),
+h''(x_0), h'''(x_0)$; applying Horner's rule, this costs $\sim 2\ell$
+multiplications using affine coordinates, or $\sim 3\ell$ using
+projective coordinates. Then we inject these values in
+Eq.~\eqref{eq:bmss} and in its derivative to evaluate the isogeny,
+this only takes a constant number of multiplications (plus one
+inversion in affine coordinates). Finally, the image of $(x_0,y_0)$ is
+given by \[\left(\beta(g(x_0)/h(x_0)-p_{-1}+p_1),\, \beta
+y_0(g/h)'(x_0)\right).\] Note that if the $y$-coordinate is not
+needed\footnote{While $x$ coordinates are enough to compute V\'elu's
+  isogenies and the image curve, this forces the other party to use
+  $y$-coordinate-free formulas for point multiplication.}, we can
+avoid computing $h'''(x_0)$, thus saving $\sim\ell/2$
+multiplications. Of course, for specific small $\ell$, such as
+$\ell=3,5$, it is more convenient to write down the isogeny explicitly
+in terms of the kernel points and find optimized formulas.
+
+When $\ell=2$, things are more complex, but in our specific case we
+can easily deal with it. The isogeny of $E$ vanishing
+$(0,0)$ is readily seen as being
+\begin{align}
+  \label{eq:isogeny-2}
+  &F \;:\;  y^2 = x^3 + \frac{A+6}{B}x^2 + 4\frac{A+2}{B^2}x,\\
+  &\begin{aligned}
+    \phi : E &\to F,\\
+    (x,y) &\mapsto \left(\frac{1}{B}\frac{(x-1)^2}{x}, \frac{1}{B}\left(y - \frac{y}{x^2}\right)\right).
+  \end{aligned}
+\end{align}
+If a point $P_8$ satisfying $[4]P_8=(0,0)$ is known, then $\sqrt{A+2}$
+can be computed from the abscissa of $\phi(P_8)$, and $F$ can be put
+in Montgomery form as before. The isogeny vanishing on a generic point
+of order two $P_2\ne(0,0)$ can be easily computed when a point $P_4$
+satisfying $[2]P_4=P_2$ is known: change coordinates to bring $P_2$ in
+$(0,0)$, then use the abscissa of $P_4$ to express the resulting curve
+in Montgomery form (this is the same technique as above, taking
+$\ell=1$); notice that this step needs to be done at most once per key
+exchange . When points of order $8$ or $4$ are not available, as in
+the last few steps of our setting, ordinary Weierstrass forms yield
+formulas that require a few extra multiplications.
+
+We conclude this section with operation counts for the key exchange
+algorithms. We write $I,M,S$ for the costs of one inversion,
+multiplication and squaring in $\FF_{p^2}$ respectively, and we make
+the assumption $S\le M$; we count multiplication by constants as
+normal multiplications. For simplicity, we only list quadratic terms
+in $e_A$.
+
+\paragraph{Multiplication-based.}
+If $P$ is a point on the Kummer line, computing $P$ times an $n$-bit
+integer costs $(7M+4S)\log_2n$ (see~\cite{montgomery}). Thus the
+cumulative cost of Step~\ref{alg:mul:mul}
+is \[\sum_{i=1}^{e_A-1}(7M+4S) \log_2\ell_A^{i} \sim
+\frac{1}{2}(7M+4S) (\log_2\sqrt{p})^2\log_{\ell_A}2.\] Doubling a
+point on the Kummer line only costs $3M+2S$, and thus the cost for
+$\ell_A=2$ drops down to $\frac{1}{2}(3M+2S)(\log_2\sqrt{p})^2$.
+
+\paragraph{Isogeny-based}
+The only quadratic term in $e_A$ appears at
+Step~\ref{alg:iso:eval}. Since we do not need the $y$ coordinate of
+the points involved in this step, we only need the values $h(x_0),
+h'(x_0), h''(x_0)$ in order to apply Eq.~\eqref{eq:bmss}. We let
+$s=(\ell_A-1)/2$ be the degree of $h$. In affine coordinates, since
+$h$ is monic, Horner's rule requires $(3s-6)M$, except when
+$s=1,2$. Then, to compute $\beta(g(x_0)/h(x_0)-p_{-1}+p_1)$ we need
+$I+8M+2S$. For $\ell_A=3$ the total count drops to $I+6M+2S$, and for
+$\ell_A=5$ it is $I+8M+2S$. 
+
+In projective coordinates, we first compute $Z,\ldots,Z^s$ at a cost of
+$(s-1)M$. Then, if $h=\sum_ih_iX^{s-i}Z^i$, we compute the monomials
+$h_iZ^i$ using $sM$. Finally we compute $h,h',h''$ using three applications
+of Horner's rule, costing again $(3s-6)M$ when $s\ne1,2$. The final computation
+requires $11M+3S$. For $\ell_A=3$ the total count is $10M+2S$, and for
+$\ell_A=5$ it is $14M+3S$. 
+
+The difference between the affine and the projective formulas is
+$I-2(s-1)M-S$, so the choice between the two must be done according to
+the ratio $I/M$.
+
+Finally for $\ell_A=2$, assuming a point of order $8$ on the domain
+curve is known (which will always be the
+case, except in the last two iterations), evaluating the $x$ part of
+Eq.~\ref{eq:isogeny-2} in projective coordinates and bringing
+the result back to a Montgomery curve costs $2M+S$.
+
+There are $e_A(e_A-1)$ isogeny evaluations in the algorithm, so,
+assuming that $N$ is the cost of doing one evaluation, the total cost
+is about
+$\frac{1}{2}e_A^2N=\frac{1}{2}N(\log_2\sqrt{p})^2(\log_{\ell_A}2)^2$. We
+summarize the main costs of the two algorithms in Table~\ref{tab:counts}.
+
+\begin{table}[t]
+  \centering
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} l | r | r | r | r | r }
+    $\ell_A$ & 2 & 3 & 5 & 11 & 19\\
+    $\log_{\ell_A}2$ & 1 & 0.63 & 0.43 & 0.29 & 0.23\\
+    \hline
+    Isogeny & $2M+S$ & $4.0M+0.8S$ & $1.7M+0.5S$ & $2.0M+0.2S$ & $2.4M+0.2S$\\
+    Multiplication & $3M+2S$ & $4.4M+2.5S$ & $3.0M+1.7S$ & $2.0M+1.1S$ & $1.6M+0.9S$
+  \end{tabular*}
+  \smallskip
+  \caption{Comparative costs for the multiplication and isogeny based algorithms using projective coordinates. The entries must be multiplied by $\frac{1}{2}(\log_2\sqrt{p})^2$ to obtain the full cost.}
+  \label{tab:counts}
+\end{table}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Security}\label{sec} 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Complexity assumptions and security
+  proofs}\label{subsec:proof}
+
+As before, let $p$ be a prime of the form $\ell_A^{e_A}
+\ell_B^{e_B}\cdot f \pm 1$, and fix a supersingular curve $E_0$ over
+$\FF_{p^2}$ together with bases $\{P_{A},Q_{A}\}$ and
+$\{P_{B},Q_{B}\}$ of $E_0[\ell_A^{e_A}]$ and $E_0[\ell_B^{e_B}]$
+respectively. In analogy with the case of isogenies over ordinary
+elliptic curves, we define the following computational problems,
+adapted for the supersingular case:
+
+\begin{problem}[Supersingular Isogeny (SSI) problem] Let $\phi_A
+  \colon E_0 \to E_A$ be an isogeny whose kernel is
+  $\cyc{[m_A]P_A+[n_A]Q_A}$, where $m_A$ and $n_A$ are chosen at
+  random from $\ZZ/\ell_A^{e_A}\ZZ$ and not both divisible by $\ell_A$.
+  Given $E_A$ and the values $\phi_A(P_B)$, $\phi_A(Q_B)$, find a
+  generator $R_A$ of $\cyc{[m_A]P_A+[n_A]Q_A}$.
+\end{problem}
+
+We remark that given a generator $R_A = [m_A]P_A+[n_A]Q_A$, it is easy
+to solve for $(m_A,n_A)$, since $E_0$ has smooth order and thus
+extended discrete logarithms are easy in $E_0$~\cite{teske-ph}.
+
+\begin{problem}[Supersingular Computational Diffie-Hellman
+    (SSCDH) problem] Let $\phi_A \colon E_0 \to E_A$ be an isogeny
+  whose kernel is equal to $\cyc{[m_A]P_A+[n_A]Q_A}$, and let $\phi_B \colon
+  E_0 \to E_B$ be an isogeny whose kernel is
+  $\cyc{[m_B]P_B+[n_B]Q_B}$, where $m_A,n_A$ (respectively $m_B,n_B$)
+  are chosen at random from $\ZZ/\ell_A^{e_A}\ZZ$ (respectively
+  $\ZZ/\ell_B^{e_B}\ZZ$) and not both divisible by $\ell_A$ (respectively
+  $\ell_B$). Given the curves $E_A,$ $E_B$ and the points
+  $\phi_A(P_B),$ $\phi_A(Q_B),$ $\phi_B(P_A),$ $\phi_B(Q_A)$, find the
+  $j$-invariant of $E_0/\cyc{[m_A]P_A+[n_A]Q_A ,[m_B]P_B+[n_B]Q_B}$.
+\end{problem}
+
+\begin{problem}[Supersingular Decision Diffie-Hellman (SSDDH)
+    problem] Given a tuple sampled with probability $1/2$ from one of
+  the following two distributions:
+\begin{itemize} 
+\item $(E_A, E_B, \phi_A(P_B), \phi_A(Q_B), \phi_B(P_A), \phi_B(Q_A),
+  E_{AB})$, where $E_A,$ $E_B$, $\phi_A(P_B),$ $\phi_A(Q_B),$
+  $\phi_B(P_A),$ $\phi_B(Q_A)$ are as in the SSCDH problem and \[E_{AB} \iso
+  E_0/\cyc{[m_A]P_A+[n_A]Q_A ,[m_B]P_B+[n_B]Q_B},\]
+\item $(E_A, E_B, \phi_A(P_B), \phi_A(Q_B), \phi_B(P_A), \phi_B(Q_A),
+  E_C)$, where $E_A,$ $E_B$, $\phi_A(P_B),$ $\phi_A(Q_B),$
+  $\phi_B(P_A),$ $\phi_B(Q_A)$ are as in the SSCDH problem and \[E_{C} \iso
+  E_0/\cyc{[m_A']P_A+[n_A']Q_A ,[m_B']P_B+[n_B']Q_B},\] where
+  $m_A',n_A'$ (respectively $m_B',n_B'$) are chosen at random from
+  $\ZZ/\ell_A^{e_A}\ZZ$ (respectively $\ZZ/\ell_B^{e_B}\ZZ$) and not both
+  divisible by $\ell_A$ (respectively $\ell_B$),
+\end{itemize}
+determine from which distribution the triple is sampled.
+\end{problem}
+
+We conjecture that these problems are computationally infeasible, in
+the sense that for any polynomial-time solver algorithm, the advantage
+of the algorithm is a negligible function of the security parameter
+$\log p$. The resulting security assumptions are referred to as the
+SSI, SSCDH, and SSDDH assumptions, respectively. Using the methods
+of Stolbunov~\cite{stolbunov-red}, it is a routine exercise to prove
+that the protocols of Section~\ref{sec:kep} are secure under SSDDH:
+
+\begin{theorem}\label{thm:kep-proof}
+Under the SSDDH assumption, the key-agreement protocol of
+Section~\ref{subsec:kep} is session-key secure in the
+authenticated-links adversarial model of Canetti and
+Krawczyk~\cite{canetti}.
+\end{theorem}
+\begin{theorem}\label{thm:pk-proof}
+If the SSDDH assumption holds, and the hash function family
+$\mathcal{H}$ is entropy-smoothing, then the public-key cryptosystem
+of Section~\ref{subsec:pk} is IND-CPA.
+\end{theorem}
+
+\opt{full-version}{As an illustration of the proof techniques, we
+  provide a proof of Theorem~\ref{thm:kep-proof} in
+  Appendix~\ref{sec:kep-proof}.
+}
+
+\begin{remark}\label{rem:auth}
+As in the ordinary case~\cite{R&S,Stol}, our protocols do not provide
+authentication. One possible workaround for the time being
+is to use classical public-key authentication schemes in conjunction
+with the standard observation~\cite[\S 6.2]{sml09} that the
+authentication step only needs to be secure against the adversary at the
+time of the initial connection.
+\end{remark}
+
+\subsection{Hardness of the underlying
+  assumptions}\label{subsec:hardness}
+
+Given an SSI (respectively, SSCDH) solver, it is trivial to solve
+SSCDH (respectively, SSDDH). There is of course no known reduction
+in the other direction, and given that the corresponding question of
+equivalence for
+discrete logarithms and Diffie-Hellman has not yet been completely
+resolved in all cases, it is reasonable
+to assume that the question of equivalence of SSI, SSCDH, and SSDDH
+is at least hard to resolve. For the purposes of this discussion, we
+will presume that SSI is equivalent to SSDDH.
+
+In the context of cryptography, the problem of computing an isogeny
+between isogenous supersingular curves was first considered by
+Galbraith~\cite{Gal} in 1999. The first published cryptographic
+primitive based on supersingular isogeny graphs is the hash function
+proposal of Charles et al.~\cite{CGL}, which remains unbroken to date
+(the cryptanalysis of~\cite{quis} applies only to the LPS graph-based
+hash function from~\cite{CGL}, and not to the supersingular isogeny
+graph-based hash functions). The fastest known algorithm for finding
+isogenies between supersingular curves in general takes $O(\sqrt{p}
+\log^2 p)$ time~\cite[\S 5.3.1]{CGL}; however our problem is less
+general because the degree of the isogeny is known in advance and is
+smooth. \opt{full-version}{In addition, the distribution of isogenous
+  curves obtained
+from taking kernels of the form $\cyc{[m_A]P_A+[n_A]Q_A}$ is not quite
+uniform: a simple calculation against Proposition~\ref{prop:mixing}
+indicates that a sequence of $e_A$ isogenies of degree $\ell_A$ falls
+short of the length needed to ensure uniform mixing, regardless of the
+value of $p$.} Since we are the first to propose using isogenies of
+this type, there is no existing literature addressing the security
+of the isogenies of the special form that we propose.
+
+There is an easy exponential attack against our cryptosystem that
+improves upon exhaustive search. To find an isogeny of degree
+$\ell_A^{e_A}$ between $E$ and $E_A$, an attacker builds two trees of all
+curves isogenous to $E$ (respectively, $E_A$) via isogenies of degree
+$\ell_A^{e_A/2}$. Once the trees are built, the attacker tries to find
+a curve lying in both trees. Since the degree of the isogeny $\phi_A$ is
+$\sim\sqrt{p}$ (much shorter than the size of the isogeny graph), it
+is unlikely that there will be more than one isogeny path---and thus
+more than one match---from $E$ to $E_A$. Given two functions $f:A\to
+C$ and $g:B\to C$ with domain of equal size, finding a pair $(a,b)$
+such that $f(a)=g(b)$ is known as the \emph{claw problem} in
+complexity theory. The claw problem can obviously be solved
+in $O(|A| + |B|)$ time and $O(|A|)$ space on a classical computer by
+building a
+hash table holding $f(a)$ for any $a\in A$ and looking for hits for
+$g(b)$ where $b\in B$. This gives a $O(\ell_A^{e_A/2})=O(\sqrt[4]{p})$
+classical attack against our cryptosystem. With a quantum computer, one
+can do better using the algorithm in~\cite{tani}, which has complexity
+$O(\sqrt[3]{|A||B|})$, thus giving an
+$O(\ell_A^{e_A/3})=O(\sqrt[6]{p})$ quantum attack against our
+cryptosystem. These complexities are optimal for a black-box claw
+attack~\cite{zhang}.
+
+We consider the question of whether the auxiliary data points
+$\phi_A(P_B)$ and $\phi_A(Q_B)$ might assist an adversary in
+determining $\phi_A$. Since $(P_B,Q_B)$ forms a basis for
+$E_0[\ell_B^{e_B}]$, the values $\phi_A(P_B)$ and $\phi_A(Q_B)$ allow
+the adversary to compute $\phi_A$ on all of $E_0[\ell_B^{e_B}]$. This
+is because any element of $E_0[\ell_B^{e_B}]$ is a (known) linear
+combination of $P_B$ and $Q_B$ (known since extended discrete
+logarithms are easy~\cite{teske-ph}). However, there does not appear
+to be any way to use this capability to determine $\phi_A$. Even on a
+quantum computer, where finding abelian hidden subgroups is easy,
+there is no hidden subgroup to find, since $\phi_A$ has degree
+$\ell_A^{e_A}$, and thus does not annihilate any point in
+$E_0[\ell_B^{e_B}]$ other than the identity. Of course, if one could
+evaluate $\phi_A$ on arbitrary points of $E_0[\ell_A^{e_A}]$, then a
+quantum computer could easily break the scheme, and indeed in this case the
+scheme is also easily broken classically by using a few calls to the
+oracle to compute a generator of the kernel of the dual isogeny 
+$\hat{\phi}_A$. However, it does not seem possible to translate the values of
+$\phi_A$ on $E_0[\ell_B^{e_B}]$ into values on $E_0[\ell_A^{e_A}]$.
+
+Finally, we discuss the possibility of adapting the quantum algorithm
+of Childs et al.~\cite{CJS} for the ordinary case to the supersingular
+case. For both ordinary and supersingular curves, there is a natural
+bijection between isogenies (up to isomorphism) and (left) ideal
+classes in the endomorphism ring. The algorithm of Childs et
+al. depends crucially on the fact that the ideal classes in the
+ordinary case form an abelian group. In the supersingular case, the
+endomorphism ring is a maximal order in a noncommutative quaternion
+algebra, and the left ideal classes do not form a group at all
+(multiplication is not well defined). Thus we believe that no
+reasonable variant of this strategy would apply to supersingular
+curves.
+
+\section{Implementation results and example}\label{sec:imp}
+
+We implemented our cryptosystem in the computer algebra system
+Sage~\cite{Sage} using a mixed C/Cython/Sage architecture. This allows
+us to access the large palette of number theoretic algorithms
+distributed with Sage, while still permitting very efficient code in
+C/Cython for the critical parts such as the algorithms of
+Section~\ref{subsec:kea}. The source code can be downloaded from the
+second author's web page.
+
+Arithmetic in $\FF_{p^2}$ is written in C. We use the library GMP for
+arithmetic modulo $p$. The field $\FF_{p^2}$ is implemented as
+$\FF_{p^2}[X]/(X^2+1)$ (this requires $p=3\bmod4$); using this
+representation, one multiplication in $\FF_{p^2}$ requires three
+multiplications ($3M$) in $\FF_p$, one $\FF_{p^2}$ squaring requires
+two multiplications ($2M$) in $\FF_p$, and one $\FF_{p^2}$ inversion
+requires one inversion, two squarings, and two multiplications
+($I+2S+2M$) in $\FF_p$. Our experiments show that, for the sizes we
+are interested in, $I=10M$ and $S=0.8M$.
+
+We implemented the isogeny-based key exchange algorithm for $\ell=2,3$
+and the multiplication-based algorithm for $\ell>2$.  The main loop is
+implemented in Cython, while the isogeny evaluation and the Montgomery
+ladder formulas are written in C.
+
+Finally, the parameter generation is implemented in plain
+Sage. Because Sage is a collection of many open source mathematical
+systems, various of its subsystems are involved in this last part. Of
+these, Pari~\cite{Pari} plays an important role because it is used to
+compute Hilbert class polynomials and to factor polynomials over
+finite fields.
+
+\begin{table}[t]
+  \centering
+  \begin{tabular}{l | r | r | r | r}
+    & \multicolumn{2}{c|}{Alice} & \multicolumn{2}{|c}{Bob}\\
+    & round 1 & round 2 & round 1 & round 2\\
+    \hline
+    $2^{253}3^{161}7-1$ &  365 ms &  363 ms &  318 ms &  314 ms \\
+    $5^{110} 7^{91} 284 - 1$ & 419 ms & 374 ms & 369 ms & 326 ms \\
+    $11^{74}13^{69}384-1$ & 332 ms & 283 ms & 321 ms & 272 ms \\
+    $17^{62}19^{60}210+1$ & 330 ms & 274 ms & 331 ms & 276 ms\\
+    $23^{56}29^{52}286+1$ & 339 ms & 274 ms & 347 ms & 277 ms \\
+    $31^{51}41^{47}564-1$ & 355 ms & 279 ms & 381 ms & 294 ms \\
+    \hline
+    $2^{384}3^{242}8-1$ & 1160 ms & 1160 ms &  986 ms &  973 ms \\
+    $5^{165}7^{137}2968-1$ & 1050 ms & 972 ms & 916 ms & 843 ms\\
+    $11^{111}13^{104} 78 + 1$ & 790 ms & 710 ms & 771 ms & 688 ms\\
+    $17^{94}19^{90}116 - 1$ & 761 ms & 673 ms & 750 ms & 661 ms\\
+    $23^{85}29^{79}132 - 1$ & 755 ms & 652 ms & 758 ms & 647 ms\\
+    $31^{77}41^{72}166 + 1$ & 772 ms & 643 ms & 824 ms & 682 ms\\
+    \hline
+    $2^{512}3^{323}799-1$ & 2570 ms & 2550 ms & 2170 ms & 2150 ms\\
+    $5^{220}7^{182}538 + 1$ & 2270 ms & 2140 ms & 1930 ms & 1810 ms \\
+    $11^{148}13^{138}942 + 1$ & 1650 ms & 1520 ms & 1570 ms & 1440 ms\\
+    $17^{125}19^{120}712 - 1$ & 1550 ms & 1430 ms & 1520 ms & 1380 ms\\
+    $23^{113}29^{105}1004-1$ & 1480 ms & 1330 ms & 1470 ms & 1300 ms
+  \end{tabular} 
+
+\vspace{1em}
+
+  \caption{Benchmarks for various group sizes and structures.}
+  \label{tab:benchs}
+\end{table}
+
+All tests ran on a 2.4 GHz Opteron running in 64-bit mode. The results are
+summarized in Table~\ref{tab:benchs}. At the quantum 128-bit security level
+(768-bit $p$), our numbers improve upon Stolbunov's
+reported performance
+figures~\cite[Table 1]{Stol} by over two orders of magnitude (.758
+seconds vs. 229 seconds).
+This is the highest security level appearing in~\cite[Table 1]{Stol}, so
+comparisons at higher levels are difficult. Nevertheless, it
+seems safe to assume that the improvement is even greater at the
+256-bit security level. Our results demonstrate that the proposed
+scheme is practical.
+
+\subsection{Example}\label{sec:ex}
+
+As a convenience, we provide an example calculation of a key-exchange
+transaction. Let $\ell_A = 2$, $\ell_B = 3$, $e_A = 63$, $e_B = 41$,
+and $f = 11$. We use the starting curve $E_0: y^2 = x^3 + x$. For the
+torsion bases, we use {\tiny
+\begin{align*}
+P_A &= (2374093068336250774107936421407893885897 i + 
+    2524646701852396349308425328218203569693, \\
+    & \qquad 1944869260414574206229153243510104781725 i + 
+    1309099413211767078055232768460483417201) \\
+P_B &= (1556716033657530876728525059284431761206 i + 
+    1747407329595165241335131647929866065215, \\
+    & \qquad 3456956202852028835529419995475915388483 i + 
+    1975912874247458572654720717155755005566)
+\end{align*}
+}
+{\!\!\!} and $Q_A = \psi(P_A), Q_B = \psi(P_B)$, where $i = \sqrt{-1}$ in
+$\FF_{p^2}$ and $\psi(x,y) = (-x,iy)$ is a distortion map~\cite{joux}. The
+secret values are
+{\tiny
+\begin{align*}
+m_A &= 2575042839726612324,\ 
+n_A = 8801426132580632841,\  \\
+m_B &= 4558164392438856871,\ 
+n_B = 20473135767366569910 
+\end{align*}
+}
+The isogeny $\phi_A\colon E_0 \to E_A$ is specified by its kernel, and
+thus the curve $E_A$ is only well defined up to isomorphism; its exact
+value may vary depending on the implementation. In our case, the curve
+is $E_A: y^2 = x^3 + ax + b$ where
+{\tiny
+\begin{align*}
+a &= 428128245356224894562061821180718114127 i + 2147708009907711790134986624604674525769 \\
+b &= 3230359267202197460304331835170424053093 i + 1577264336482370197045362359104894884862
+\end{align*}
+}
+and the values of $\phi_A(P_B)$ and $\phi_A(Q_B)$ are
+{\tiny
+\begin{align*}
+\phi_A(P_B) &= 
+(1216243037955078292900974859441066026976 i + 
+    1666291136804738684832637187674330905572, \\
+    & \qquad 3132921609453998361853372941893500107923 i + 
+    28231649385735494856198000346168552366)
+\\
+\phi_A(Q_B) &=
+(2039728694420930519155732965018291910660 i + 
+    2422092614322988112492931615528155727388, \\
+    & \qquad 1688115812694355145549889238510457034272 i + 
+    1379185984608240638912948890349738467536)
+\end{align*}
+}
+Similarly, in our implementation $E_B : y^2 = x^3 + ax
++ b$ is the curve with
+{\tiny
+\begin{align*}
+a &= 2574722398094022968578313861884608943122 i + 464507557149559062184174132571647427722 \\
+b &= 2863478907513088792144998311229772886197 i + 1767078036714109405796777065089868386753
+\end{align*}
+}
+\opt{full-version}{and the values of $\phi_B(P_A)$ and $\phi_B(Q_A)$ are
+{\tiny
+\begin{align*}
+\phi_B(P_A) &=
+(2519086003347973214770499154162540098181 i + 
+    1459702974009609198723981125457548440872, \\
+    & \qquad 2072057067933292599326928766255155081380 i + 
+    891622100638258849401618552145232311395)
+\\
+\phi_B(Q_A) &=
+(53793994522803393243921432982798543666 i + 
+    3698741609788138685588489568343190504844, \\
+    & \qquad 2853868073971808398649663652161215323750 i + 
+    1869730480053624141372373282795858691139)
+\end{align*}
+}}The common $j$-invariant of $E_{AB} \iso E_{BA}$, computed by both
+Alice and Bob, is equal to
+{\tiny
+\[
+j(E_{AB}) = 1437145494362655119168482808702111413744 i +
+833498096778386452951722285310592056351.\]
+}
+\vspace{-2em}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusion}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+We propose a new family of conjecturally quantum-resistant cryptographic
+protocols for key exchange and public-key cryptosystems using isogenies
+between supersingular elliptic curves of smooth order. In order to
+compensate for the noncommutative endomorphism rings that arise in this
+setting, we introduce the idea of providing the images of torsion bases
+as part of the protocol. Against the fastest known attacks, the
+resulting scheme improves upon all previous isogeny-based schemes by
+orders of magnitude in performance at conventional security levels,
+making it the first practical isogeny-based public-key cryptosystem.
+Unlike prior such schemes, our proposal admits no known
+subexponential-time attacks even in the quantum setting.
+
+\subsection*{Acknowledgements}
+
+We thank Andrew M. Childs, Alfred Menezes, Vladimir Soukharev, and
+the anonymous reviewers for helpful comments and suggestions. This work
+is supported in part by NSERC CRD Grant CRDPJ 405857-10.
+
+\bibliographystyle{plain}
+\opt{conference}{
+\bibliography{crypto}
+}
+\opt{full-version}{
+\bibliography{crypto-long}
+}
+
+\opt{full-version}{\input{appendix}}
+
+\end{document}
+
