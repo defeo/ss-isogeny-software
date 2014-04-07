@@ -207,9 +207,11 @@ $\ell$ such that $p\nmid \ell$, we have $E[\ell] \cong \ZZ/\ell\ZZ \oplus
 Curves in the same isogeny class are either all supersingular or all
 ordinary. 
 We assume for the remainder of this paper that
-we are in the supersingular case.
+we are in the supersingular case. Every supersingular curve being
+isomorphic to a curve defined over the field~$\FF_{p^2}$, we limit
+ourselves to this base field.
 
-Supersingular curves are all defined over $\FF_{p^2}$, and for every
+For every
 prime $\ell \nmid p$, there exist exactly $\ell+1$ isogenies (counting
 multiplicities) of degree $\ell$ originating from any given such
 supersingular curve.
@@ -355,14 +357,14 @@ a full discussion of security.
 
 We begin with the protocol which is easiest to understand. Peggy
 knows a cyclic degree $\ell_A^{e_A}$ isogeny $\phi:E \to E/\cyc{S}$,
-with the curves $E$ and $E/\cyc{S}$ publicly known, and wants to prove
+with the curves $E$ and $E/\cyc{S}$ publicly known, and wants to prove to
 Vic that she knows a generator for $\cyc{S}$, without revealing it.
 
 Our protocol is loosely inspired by the zero-knowledge proof of
 membership for Graph
 Isomorphism~\cite{goldreich+micali+widgerson91}. In that protocol,
 Peggy shows that she knows a graph isomorphism $G \simeq G'$ by first
-publishing a random $H$ such that the following diagram commutates
+publishing a random $H$ such that the following diagram commutes
 \begin{equation}
   \label{eq:gi}
   \begin{tikzpicture}[xscale=1.5,yscale=1.5,baseline=(current bounding box.east)]
@@ -1121,7 +1123,7 @@ For example, in the case where~$p = 1$ and~$q = 2$, the sequence~$(u_m)$
 is the sequence of Fibonacci numbers, starting at~$u_2 = 1$, $u_3 = 1$,
 $u_4 = 2$..., and a strategy~$S$ with~$u_{m} \leq \abs{S} < u_{m+1}$ is
 optimal if, and only if, the left and right branches~$S'$ and~$S''$
-verify $u_{m-2} \leq \abs{S'} \leq u_{m-1}$ and~$u_{m-1} \leq \abs{S''} \leq
+satisfy $u_{m-2} \leq \abs{S'} \leq u_{m-1}$ and~$u_{m-1} \leq \abs{S''} \leq
 u_m$.
 
 \begin{proof}
@@ -1280,7 +1282,7 @@ inversions and square root computations as much as possible.
 
 Let $E$ be the Montgomery curve defined by Eq.~\eqref{eq:montgomery}.
 It has a point of order two $P_2=(0,0)$, and a point of order four
-$P_4=(1,\sqrt{(A+2)/B})$---eventualy defined over a quadratic
+$P_4=(1,\sqrt{(A+2)/B})$---sometimes defined over a quadratic
 extension---such that $[2]P_4=P_2$. Montgomery curves have twists of
 the form $\tilde{y}=\sqrt{c}y$; these are isomorphisms when $c$ is a
 square. The change of coordinates $\tilde{x}=x/B, \tilde{y}=y/B$
@@ -1478,9 +1480,10 @@ isogenies are:
   $4$ isogenies composed with isomorphisms.
 \end{enumerate}
 
-We argue that, given the current parameters, both approaches are
-likely to take roughly the same computational effort. We only have
-used the first one in our tests.
+Since we use Kummer coordinates, the estimated cost for the first
+strategy is~$(2M + S)e$ while that of the second strategy is~$(6M+S)
+\frac{e}{2}$. The first approach is expected to be slightly faster and
+it is the one we used in our tests.
 
 Finally, it should be noted that both approaches, if implemented as
 described above, leak two bits of security. Indeed, the point
@@ -1605,7 +1608,7 @@ determine from which distribution the tuple is sampled.
 
 The ordinary case analogue of the following problem is trivially
 solvable in polynomial time. Its supposed difficulty in the
-supersingular case is at the hearth of the security of our
+supersingular case is at the heart of the security of our
 identification scheme.
 
 \begin{problem}[Decisional Supersingular Product (DSSP) problem]
@@ -1725,7 +1728,7 @@ crucially on the properties of abelian groups, we believe that no
 reasonable variant of this strategy would apply.
 
 The same correspondence between isogenies and ideals can be applied to
-DSSP. Indeed, deciding DSSP amounts to decide whether the ideals
+DSSP. Indeed, deciding DSSP amounts to deciding whether the ideals
 $S,S'$ associated to $\phi,\phi'$ are conjugated, i.e., whether there
 exists a left ideal $R\in\End(E_0)$ such that $S=RS'R^{-1}$. Although
 it can be hoped that deciding conjugacy of ideal classes in the
