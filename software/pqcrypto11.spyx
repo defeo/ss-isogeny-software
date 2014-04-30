@@ -15,6 +15,7 @@
 
 
 from gfp2 cimport *
+from libc.stdlib cimport malloc, free
 from sage.rings.ring cimport Field
 from sage.structure.element cimport Element, FieldElement, ModuleElement, RingElement
 from sage.structure.sage_object cimport SageObject
@@ -25,7 +26,7 @@ import cython
 
 from sage.rings.finite_rings.constructor import FiniteField
 from sage.rings.integer cimport Integer
-from sage.libs.pari.gen import pari
+from sage.libs.pari.pari_instance import pari
 from sage.misc.latex import latex
 from sage.rings.all import PolynomialRing
 from sage.schemes.elliptic_curves.constructor import EllipticCurve
