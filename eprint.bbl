@@ -19,7 +19,7 @@ Juliana~V. Belding, \emph{Number Theoretic Algorithms for Elliptic Curves},
 
 \bibitem{twisted-edwards}
 Daniel Bernstein, Peter Birkner, Marc Joye, Tanja Lange and Christiane Peters,
-  {Twisted Edwards Curves}, in: \emph{Progress in Cryptology – AFRICACRYPT
+  {Twisted Edwards Curves}, in: \emph{Progress in Cryptology -- AFRICACRYPT
   2008}, pp.~389--405, 2008.
 
 \bibitem{efd}
@@ -111,7 +111,7 @@ Antoine Joux, \emph{The {W}eil and {T}ate pairings as building blocks for
 
 \bibitem{kocher+jaffe+jun99}
 Paul Kocher, Joshua Jaffe and Benjamin Jun, {Differential Power Analysis}, in:
-  \emph{Advances in Cryptology — CRYPTO' 99}, Lecture Notes in Computer
+  \emph{Advances in Cryptology -- CRYPTO' 99}, Lecture Notes in Computer
   Science 1666, pp.~388--397, Springer Berlin Heidelberg, Berlin, Heidelberg,
   December 1999.
 
@@ -167,7 +167,7 @@ Arnold~K. Pizer, \emph{Ramanujan graphs}, Computational perspectives on number
 
 \bibitem{pointcheval95-pp}
 David Pointcheval, A New Identification Scheme Based on the Perceptrons
-  Problem, in: \emph{Advances in Cryptology — EUROCRYPT '95}, Lecture Notes
+  Problem, in: \emph{Advances in Cryptology --- EUROCRYPT '95}, Lecture Notes
   in Computer Science 921, pp.~319--328, Springer Berlin / Heidelberg, Berlin,
   Heidelberg, 1995.
 
@@ -199,13 +199,13 @@ William~A. Stein et~al., \emph{{S}age {M}athematics {S}oftware ({V}ersion
 
 \bibitem{stern94-CLE}
 Jacques Stern, Designing Identification Schemes with Keys of Short Size, in:
-  \emph{Advances in Cryptology — CRYPTO '94}, Lecture Notes in Computer
+  \emph{Advances in Cryptology --- CRYPTO '94}, Lecture Notes in Computer
   Science 839, pp.~164--173, Springer Berlin / Heidelberg, Berlin, Heidelberg,
   1994.
 
 \bibitem{stern94-SD}
 Jacques Stern, A new identification scheme based on syndrome decoding, in:
-  \emph{Advances in Cryptology — CRYPTO' 93}, Lecture Notes in Computer
+  \emph{Advances in Cryptology --- CRYPTO' 93}, Lecture Notes in Computer
   Science 773, pp.~13--21, Springer Berlin / Heidelberg, Berlin, Heidelberg,
   1994.
 
