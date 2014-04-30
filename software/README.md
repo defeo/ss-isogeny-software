@@ -5,13 +5,13 @@ Copyright 2011-2014 Luca De Feo <http://defeo.lu/>.
 
 This software implements the cryptosystem described in
 
-D. Jao and L. De Feo, Towards quantum-resistant cryptosystems from
-supersingular elliptic curve isogenies. *Post-Quantum Cryptography*,
-Nov 2011, Taipei, Taiwan. Springer, LNCS 7071, pp. 19-34, 2011.
+> D. Jao and L. De Feo, Towards quantum-resistant cryptosystems from
+> supersingular elliptic curve isogenies. *Post-Quantum Cryptography*,
+> Nov 2011, Taipei, Taiwan. Springer, LNCS 7071, pp. 19-34, 2011.
 
-L. De Feo, D. Jao and J. Plût, Towards quantum-resistant cryptosystems
-from supersingular elliptic curve isogenies. To appear in *Journal of
-Mathematical Cryptology*.
+> L. De Feo, D. Jao and J. Plût, Towards quantum-resistant
+> cryptosystems from supersingular elliptic curve isogenies. To appear
+> in *Journal of Mathematical Cryptology*.
 
 
 **WARNING:** This code is diffused for research purposes. It is still
@@ -68,3 +68,14 @@ Then it can be run to gather estimates on the running times of
 doublings, triplings, 2 and 3-isogeny evaluations. These data can be
 used to tune up (via the dictionary "weights" in `pqcrypto11.sage`)
 the key exchange algorithm.
+
+
+Thanks
+------
+
+Many thanks to those who have helped in testing and fixing this
+software.
+
+- David Jao,
+- Jérôme Plût,
+- Erik Nellessen.
