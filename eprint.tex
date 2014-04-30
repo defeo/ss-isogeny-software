@@ -1255,7 +1255,7 @@ computing $[m^{-1}n]Q$ costs $9.5M+4.5S$ per bit on average.
 
 Because addition by $P$ is performed last, this approach cannot
 be used with points on the Montgomery curve in Kummer coordinates, but
-we can use the ladder given in Figure~\ref{fig:ladder} instead. We
+we can use the ladder given in Algorithm~\ref{fig:ladder} instead. We
 first compute $P-Q$ using point addition in full projective
 coordinates (either by using the standard chord-and-tangent law, or by
 using the equivalence with twisted Edwards curves). Then we scale $P$,
@@ -1480,18 +1480,22 @@ isogenies are:
   $4$ isogenies composed with isomorphisms.
 \end{enumerate}
 
-Since we use Kummer coordinates, the estimated cost for the first
-strategy is~$(2M + S)e$ while that of the second strategy is~$(6M+S)
-\frac{e}{2}$. The first approach is expected to be slightly faster and
-it is the one we used in our tests.
+Table~\ref{tab:strategies} below suggests that the second stragegy
+yields a very small improvement over the first. The experiments of
+Section~\ref{sec:imp} show that operations not accounted for in this
+analysis might give a greater advantage to the second
+strategy. However, for lack of time, we only implemented the first
+one.
 
 Finally, it should be noted that both approaches, if implemented as
 described above, leak two bits of security. Indeed, the point
 $(1,\ldots)$ of the image curve is a point of order $4$ in the kernel
 of the dual of the computed isogeny (the secret). It is easy to mask
-this by taking a random change of coordinates; however, we found this
-more costly than simply adding two bits of security and letting the
-information leak.
+this by taking a random change of coordinates, thus in the security
+analysis of Section~\ref{sec:security} we will assume that such
+countermeasure has been applied. However, for practical purposes, we
+found this more costly than simply adding two bits of security and
+letting the information leak.
 
 Table~\ref{tab:counts} summarizes the costs of the isogeny evaluation
 and scalar multiplication formulas in light of these remarks. Because
@@ -1811,7 +1815,7 @@ is proved in three steps, known by the names of \emph{completeness},
   To prove soundness, we let Charles be any polynomially bounded
   adversary capable of convincing Vic with a non-negligible
   probability. We use Charles as a black-box of which we can control
-  the random coin tosses: by restarting it a polynomial number of
+  the random coin tosses. By restarting it a polynomial number of
   times with the same random input, and by asking each time a different
   set of questions, we learn with overwhelming probability a diagram
   \begin{equation}
