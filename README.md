@@ -23,7 +23,7 @@ Installation
 
 Just clone or
 [download](https://github.com/defeo/ss-isogeny-cryptosystem/archive/master.zip)
-this repo and cd into the `software` folder.
+this repo.
 
 You will need a recent version of [Sage](http://sagemath.org/) and a C
 compiler. This version has been tested with Sage 6.2 and gcc 4.7.3.
