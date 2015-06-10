@@ -64,11 +64,11 @@ cdef class MyGFp2(FiniteField_base):
 
         # If value is already an element of MyGFp2Element, we simply
         # return it. (elements are immutable)
-        if PY_TYPE_CHECK(value, MyGFp2Element):
+        if isinstance(value, MyGFp2Element):
             return value
         
         # We have precomputed some scalars, for efficiency
-        if ((PY_TYPE_CHECK(value, int) or PY_TYPE_CHECK(value, Integer)) and
+        if ((isinstance(value, int) or isinstance(value, Integer)) and
             abs(value) < precomputed_scalars_bound):
             return self.scalars[value]
         
@@ -246,7 +246,7 @@ cdef class MyGFp2Element(FinitePolyExtElement):
     def __richcmp__(self, right, int op):
         return (<Element>self)._richcmp(right, op)
 
-    cdef int _cmp_c_impl(self, Element other):
+    cdef int _cmp_c_impl(self, Element other) except -2:
         # Careful: -2 is treated as an exception value upstream
         # so we scale down to -1, 0, 1
         cdef int c = cmp_GF(self._rep, (<MyGFp2Element>other)._rep)
