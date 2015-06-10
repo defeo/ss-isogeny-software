@@ -144,7 +144,9 @@ cdef class MyGFp2(FiniteField_base):
     def polynomial(self, name=None):
         P = self.polynomial_ring(name)
         return P.gen() ** 2 + 1
-
+    
+    modulus = polynomial
+    
     # Interaction with pari (for factorization, etc.)
     def _finite_field_ext_pari_(self):
         return self.__pari_impl

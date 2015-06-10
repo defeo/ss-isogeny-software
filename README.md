@@ -79,3 +79,5 @@ software.
 - David Jao,
 - Jérôme Plût,
 - Erik Nellessen.
+- Adarsh Saraf,
+- Srinath.
