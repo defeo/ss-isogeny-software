@@ -136,11 +136,14 @@ def ss_isogeny_gen(lA, lB, eA, eB, f, pm1):
       - lA^eA * lB^eB * f + pm1 must be prime.
 
     Output:
-      tuple (E, lA, eA, PA, QA, lB, eB, PB, QB), where:
+      tuple (E, lA, eA, PA, QA, strA, lB, eB, PB, QB, strB), where:
       - E is a supersingular curve of cardinality (lA^eA * lB^eB * f)^2;
       - PA and QA are generators of E[lA^eA];
       - PB and QB are generators of E[lB^eB];
-      - lA, eA, lB, eB are the same as the inputs.
+      - lA, eA, lB, eB are the same as the inputs;
+      - strA and str B are computational strategies to compute cyclic
+        isogenies of degree lA^eA and lB^eB, optimized according to the
+        global variable weights.
     """
     prime = "%s^%s * %s^%s" % (lA, eA, lB, eB) + (f != 1)*(" * %s" % f) + (pm1 == 1)*" + 1" + (pm1 == -1)*" - 1"
     p = sage_eval(prime)
@@ -257,6 +260,8 @@ def ss_isogeny_exchange(E, lA, eA, PA, QA, strA, lB, eB, PB, QB, strB, measure=N
       - E a supersingular curve of cardinality (lA^eA * lB^eB * f)^2;
       - PA and QA are generators of E[lA^eA];
       - PB and QB are generators of E[lB^eB];
+      - strA and str B are computational strategies to compute cyclic
+        isogenies of degree lA^eA and lB^eB;
       - measure: use the sage_timeit module to measure performances
         (default: False)
 
