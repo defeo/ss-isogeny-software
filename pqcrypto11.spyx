@@ -21,7 +21,7 @@ from sage.structure.element cimport Element, FieldElement, ModuleElement, RingEl
 from sage.structure.sage_object cimport SageObject
 from sage.rings.finite_rings.element_base cimport FinitePolyExtElement
 from sage.rings.finite_rings.finite_field_base cimport FiniteField as FiniteField_base
-from sage.rings.finite_rings.finite_field_ext_pari import FiniteField_ext_pari
+from sage.rings.finite_rings.finite_field_pari_ffelt import FiniteField_pari_ffelt
 import cython
 
 from sage.rings.finite_rings.constructor import FiniteField
@@ -58,7 +58,7 @@ cdef class MyGFp2(FiniteField_base):
     #Element = MyGFp2Element
     def _element_constructor_(self, value=None):
         cdef MyGFp2Element res = MyGFp2Element(self)
-
+        
         if value is None:
             return res
 
@@ -106,7 +106,7 @@ cdef class MyGFp2(FiniteField_base):
         if not setup_GF(&self.__modulus, s):
             raise ValueError, "This representation of GF(p^2) requires -1 to be a quadratic non-residue modulo p"
 
-        self.__pari_impl = FiniteField_ext_pari(p**2, names, modulus=base[names]([1,0,1]))
+        self.__pari_impl = FiniteField_pari_ffelt(p, modulus=base[names]([1,0,1]), name=names)
         Field.__init__(self, base, names, category=category or FiniteFields())
 
         self.scalars = ([self(base(i)) for i in range(precomputed_scalars_bound)] +
@@ -146,18 +146,7 @@ cdef class MyGFp2(FiniteField_base):
         return P.gen() ** 2 + 1
     
     modulus = polynomial
-    
-    # Interaction with pari (for factorization, etc.)
-    def _finite_field_ext_pari_(self):
-        return self.__pari_impl
 
-    def _finite_field_ext_pari_modulus_as_str(self):
-        return self.__pari_impl.modulus()._pari_init_()
-
-    def _pari_modulus(self):
-        f = pari(str(self.modulus()))
-        return f.subst('x', 'a') * pari("Mod(1,%s)"%self.characteristic())
-        
 
 cdef class MyGFp2Element(FinitePolyExtElement):
     """
@@ -246,7 +235,7 @@ cdef class MyGFp2Element(FinitePolyExtElement):
     def __richcmp__(self, right, int op):
         return (<Element>self)._richcmp(right, op)
 
-    cdef int _cmp_c_impl(self, Element other) except -2:
+    cpdef int _cmp_(MyGFp2Element self, Element other) except -2:
         # Careful: -2 is treated as an exception value upstream
         # so we scale down to -1, 0, 1
         cdef int c = cmp_GF(self._rep, (<MyGFp2Element>other)._rep)
@@ -283,18 +272,9 @@ cdef class MyGFp2Element(FinitePolyExtElement):
     def __dealloc__(self):
         clear_GF(&self._rep)
 
-    # Interaction with pari (for factorization, etc.)
-    def _finite_field_ext_pari_element(self, k=None):
-        K = self._parent._finite_field_ext_pari_()
-        if k is not None and k is not K:
-            raise TypeError, "Pari finite field not isomorphic to parent"
-        
-        g = K.gen()
-        p = self.polynomial()
-        return p[1]*g + p[0]
-
+    # Important for polynomial factorization
     def _pari_(self, var=None):
-        return pari(self._pari_init_(var))
+        return (<MyGFp2>self._parent).__pari_impl(self.polynomial())
 
     # very slow methods, fortunately they are not critical
     def is_square(self):
