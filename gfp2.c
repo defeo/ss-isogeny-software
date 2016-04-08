@@ -95,6 +95,7 @@ void free_GF(GF_params* field) {
     for (i = 0 ; i < GF_TMP_REGS ; i++)
       clear_GF(&field->GFtmp[i]);
     mpz_clear(field->p); mpz_clear(field->tmp1); mpz_clear(field->tmp2); mpz_clear(field->tmp3);
+    gmp_randclear(field->state);
     field->initialized = 0;
   }
 }
