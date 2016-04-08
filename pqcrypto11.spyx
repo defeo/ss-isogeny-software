@@ -24,7 +24,7 @@ from sage.rings.finite_rings.finite_field_base cimport FiniteField as FiniteFiel
 from sage.rings.finite_rings.finite_field_pari_ffelt import FiniteField_pari_ffelt
 import cython
 
-from sage.rings.finite_rings.constructor import FiniteField
+from sage.rings.finite_rings.finite_field_constructor import FiniteField
 from sage.rings.integer cimport Integer
 from sage.libs.pari.pari_instance import pari
 from sage.misc.latex import latex
