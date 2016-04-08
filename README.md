@@ -1,7 +1,7 @@
 Quantum-Resistant Cryptosystems from Supersingular Elliptic Curve Isogenies
 ===========================================================================
 
-Copyright 2011-2015 Luca De Feo <http://defeo.lu/>.
+Copyright 2011-2016 Luca De Feo <http://defeo.lu/>.
 
 This software implements the cryptosystem described in
 
@@ -26,7 +26,7 @@ Just clone or
 this repo.
 
 You will need a recent version of [Sage](http://sagemath.org/) and a C
-compiler. This version has been tested with Sage 6.7 and gcc 4.9.2.
+compiler. This version has been tested with Sage 6.10 and gcc 5.2.1.
 
 
 Usage
@@ -80,4 +80,5 @@ software.
 - Jérôme Plût,
 - Erik Nellessen.
 - Adarsh Saraf,
-- Srinath.
+- Srinath,
+- Miha Marolt @miham
