@@ -26,7 +26,7 @@ Just clone or
 this repo.
 
 You will need a recent version of [Sage](http://sagemath.org/) and a C
-compiler. This version has been tested with Sage 6.10 and gcc 5.2.1.
+compiler. This version has been tested with Sage 7.1 and gcc 5.2.1.
 
 
 Usage
