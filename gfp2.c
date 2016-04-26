@@ -520,8 +520,8 @@ void shamir(GF* Rx, GF* Ry, GF* Rz,
   mul_GF(&tmp[7], tmp[6], tmp[1]);
   init_GF(&PQy, field);
   mul_GF(&PQy, tmp[7], tmp[8]); // PQy = (1+E)(D - a C) / (1-E^2)
-  neg_GF(&tmp[6], tmp[6]);
-  add_GF_ui(&tmp[6], tmp[6], 2);
+  neg_GF(&tmp[1], tmp[6]);
+  add_GF_ui(&tmp[6], tmp[1], 2);
   mul_GF(&tmp[1], tmp[0], tmp[2]);
   sub_GF(&tmp[3], tmp[1], tmp[4]);
   sub_GF(&tmp[1], tmp[3], tmp[5]);
@@ -809,8 +809,8 @@ void iso4_apply(GF* X, GF* Y, GF* Z,
     mul_GF(Y, y, tmp[8]); // Y = y C D
     sqr_GF(&tmp[6], tmp[4]);
     sub_GF_ui(&tmp[7], iso.Ap2, 4);
-    neg_GF(&tmp[7], tmp[7]);
-    mul_GF(&tmp[8], tmp[6], tmp[7]);
+    neg_GF(&tmp[0], tmp[7]);
+    mul_GF(&tmp[8], tmp[6], tmp[0]);
     mul_GF(Z, z, tmp[8]); // Z = z B^2 (4 - Ap2)
   } else {
     sub_GF(&tmp[4], tmp[3], tmp[2]);
