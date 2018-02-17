@@ -16,6 +16,7 @@
 
 from gfp2 cimport *
 from libc.stdlib cimport malloc, free
+from cysignals.signals cimport sig_on, sig_off
 from sage.rings.ring cimport Field
 from sage.structure.element cimport Element, FieldElement, ModuleElement, RingElement
 from sage.structure.sage_object cimport SageObject
@@ -24,9 +25,9 @@ from sage.rings.finite_rings.finite_field_base cimport FiniteField as FiniteFiel
 from sage.rings.finite_rings.finite_field_pari_ffelt import FiniteField_pari_ffelt
 import cython
 
-from sage.rings.finite_rings.constructor import FiniteField
+from sage.rings.finite_rings.finite_field_constructor import FiniteField
 from sage.rings.integer cimport Integer
-from sage.libs.pari.pari_instance import pari
+from sage.libs.pari import pari
 from sage.misc.latex import latex
 from sage.rings.all import PolynomialRing
 from sage.schemes.elliptic_curves.constructor import EllipticCurve
@@ -92,7 +93,7 @@ cdef class MyGFp2(FiniteField_base):
             p = x.polynomial()
             return p[1]*self.gen() + p[0]
 
-        raise ValueError, "Cannot coerce element %s to self " % value
+        # raise ValueError, "Cannot coerce element %s to self " % value
 
     
     def __init__(self, p, names, category=None):
@@ -163,10 +164,7 @@ cdef class MyGFp2Element(FinitePolyExtElement):
         FieldElement.__init__(self, parent)
 
     cdef MyGFp2Element _new_c(self):
-        cdef MyGFp2Element x
-        x = PY_NEW(MyGFp2Element)
-        x._parent = self._parent
-        x._modulus = self._modulus
+        cdef MyGFp2Element x = MyGFp2Element(self._parent)
         init_GF(&x._rep, x._modulus)
         return x
         
@@ -176,18 +174,18 @@ cdef class MyGFp2Element(FinitePolyExtElement):
           A = B.copy()
         and
           A = B
-        do not have the same sematic!
+        do not have the same semantic!
         """
         cdef MyGFp2Element c = self._new_c()
         copy_GF(&c._rep, self._rep)
         return c
 
-    cpdef ModuleElement _add_(self, ModuleElement other):
+    cpdef _add_(self,  other):
         cdef MyGFp2Element c = self._new_c()
         add_GF(&c._rep, self._rep, (<MyGFp2Element>other)._rep)
         return c
 
-    cpdef ModuleElement _sub_(self, ModuleElement other):
+    cpdef _sub_(self, other):
         cdef MyGFp2Element c = self._new_c()
         sub_GF(&c._rep, self._rep, (<MyGFp2Element>other)._rep)
         return c
@@ -197,7 +195,7 @@ cdef class MyGFp2Element(FinitePolyExtElement):
         neg_GF(&c._rep, self._rep)
         return c
 
-    cpdef RingElement _mul_(self, RingElement other):
+    cpdef _mul_(self, other):
         cdef MyGFp2Element c = self._new_c()
         mul_GF(&c._rep, self._rep, (<MyGFp2Element>other)._rep)
         return c
@@ -213,7 +211,7 @@ cdef class MyGFp2Element(FinitePolyExtElement):
             raise ZeroDivisionError
         return c
 
-    cpdef RingElement _div_(self, RingElement other):
+    cpdef _div_(self, other):
         cdef MyGFp2Element c = self._new_c()
         if not div_GF(&c._rep, self._rep, (<MyGFp2Element>other)._rep):
             raise ZeroDivisionError
@@ -232,7 +230,7 @@ cdef class MyGFp2Element(FinitePolyExtElement):
             c += coeff
         return c
     
-    cpdef int _cmp_(MyGFp2Element self, Element other) except -2:
+    cpdef int _cmp_(self, other) except -2:
         # Careful: -2 is treated as an exception value upstream
         # so we scale down to -1, 0, 1
         cdef int c = cmp_GF(self._rep, (<MyGFp2Element>other)._rep)
@@ -270,7 +268,7 @@ cdef class MyGFp2Element(FinitePolyExtElement):
         clear_GF(&self._rep)
 
     # Important for polynomial factorization
-    def _pari_(self, var=None):
+    def __pari__(self, var=None):
         return (<MyGFp2>self._parent).__pari_impl(self.polynomial())
 
     # very slow methods, fortunately they are not critical
@@ -389,7 +387,7 @@ cdef class MontgomeryCurve(SageObject):
 
         a2 = self.A + 6*(pinv - p1)
 
-        isogeny = PY_NEW(MontgomeryIsogeny)
+        isogeny = MontgomeryIsogeny.__new__()
         isogeny.domain = self
         isogeny.kernel = h
         isogeny.pinv = pinv
@@ -418,7 +416,7 @@ cdef class MontgomeryCurve(SageObject):
         """
         cdef MontgomeryThreeIsogeny isogeny
         
-        isogeny = PY_NEW(MontgomeryThreeIsogeny)
+        isogeny = MontgomeryThreeIsogeny.__new__()
         isogeny.domain = self
         isogeny.p = P.x / P.z
         isogeny.p2 = isogeny.p.square()
@@ -441,7 +439,7 @@ cdef class MontgomeryCurve(SageObject):
 
         iP4x = four_P.z / (four_P.x - four_P.z*P2x)
 
-        isomorphism = PY_NEW(MontgomeryIsomorphism)
+        isomorphism = MontgomeryIsomorphism.__new__()
         isomorphism.domain = self
         isomorphism.codomain = MontgomeryCurve(a2*iP4x, self.B*iP4x)
         isomorphism.r = -P2x
@@ -463,7 +461,7 @@ cdef class MontgomeryCurve(SageObject):
         (1,...).
         """
         cdef MontgomeryTwoIsogeny isogeny
-        isogeny = PY_NEW(MontgomeryTwoIsogeny)
+        isogeny = MontgomeryTwoIsogeny.__new__()
         isogeny.domain = self
         isogeny.iA2 = eight_P.x * eight_P.z / (eight_P.x - eight_P.z).square()
         isogeny.codomain = MontgomeryCurve((self.A + 6)*isogeny.iA2, self.B*isogeny.iA2)
@@ -484,7 +482,7 @@ cdef class MontgomeryCurve(SageObject):
 
         i2mA = ~(2 - self.A)
 
-        isogeny = PY_NEW(MontgomeryFourIsogeny)
+        isogeny = MontgomeryFourIsogeny.__new__()
         isogeny.domain = self
         isogeny.Ap2 = self.A + 2
         isogeny.codomain = MontgomeryCurve(-2*(self.A+6)*i2mA, self.B*i2mA)
@@ -1153,7 +1151,12 @@ cpdef keygen_c(MontgomeryPoint P, MontgomeryPoint Q, m, n, int ell, strategy,
     Parameters as in `keygen`. Only works for ell=2,3.
     """
     cdef MyGFp2Element Rx, Rz, tmp
-    cdef GF *Px, *Py, *Pz, *Qx, *Qy, *Qz
+    cdef GF *Px
+    cdef GF *Py
+    cdef GF *Pz
+    cdef GF *Qx
+    cdef GF *Qy
+    cdef GF *Qz
     cdef Integer M, N
     cdef MontgomeryCurve E
     cdef MontgomeryPoint QP
