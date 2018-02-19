@@ -32,7 +32,7 @@ from sage.misc.latex import latex
 from sage.rings.all import PolynomialRing
 from sage.schemes.elliptic_curves.constructor import EllipticCurve
 from sage.categories.finite_fields import FiniteFields
-from sage.rings.arith import is_square
+from sage.arith.misc import is_square
 from sage.misc.functional import is_odd
 
 
@@ -274,7 +274,7 @@ cdef class MyGFp2Element(FinitePolyExtElement):
     # very slow methods, fortunately they are not critical
     def is_square(self):
         p = self._parent.characteristic()
-        return self.is_zero() or ((self ** (p-1)) ** ((p+1)/2) == 1)
+        return self.is_zero() or ((self ** (p-1)) ** ((p+1)//2) == 1)
     
     def sqrt(self, all=False, extend=False):
         if extend:

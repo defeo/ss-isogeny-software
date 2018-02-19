@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from sage.misc.sage_timeit import sage_timeit
-import sage.misc.misc
+from sage.misc import misc
 import paths
 
 load('pqcrypto11.spyx')
