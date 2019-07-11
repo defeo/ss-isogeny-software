@@ -14,8 +14,10 @@ This software implements the cryptosystem described in
 > of Mathematical Cryptology*, 8(3), pp. 209-247. De Gruyter, 2014.
 
 
-**WARNING:** This code is distributed for research purposes. It is
-still experimental and may easily break.
+**WARNING:** This code is obsolete. For a modern treatment, please see
+the official code for the [NIST candidate SIKE](https://sike.org/),
+and the additional implementations referenced
+[here](https://sike.org/#implementation).
 
 
 Installation
